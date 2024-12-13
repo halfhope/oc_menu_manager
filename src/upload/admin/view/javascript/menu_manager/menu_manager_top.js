@@ -17,7 +17,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
 		let target = ((item.target) ? '_blank' : '_self');
 		let icon = ((item.icon == '') ? '' : '<i class="fa ' + item.icon + ' fa-fw"></i> ');
 
-		if (item.children !== undefined && item.children.length) {
+		if (item.children !== undefined && Object.keys(item.children).length) {
 			html += '<li class="dropdown-submenu level' + level + '">';
 			html += '<a ' + js + ' href="' + href + '" target="' + target + '" class="dropdown-toggle" data-toggle="dropdown">' + icon + item.name + ' <i class="fa fa-caret-down fa-fw"></i></a>';
 			html += '<ul class="dropdown-menu level' + level + '">';
@@ -26,6 +26,10 @@ window.addEventListener('DOMContentLoaded', (event) => {
 			}
 			html += '</ul>';
 			html += '</li>';
+		} else if (href == '#divider') {
+			html += '<li role="separator" class="divider"></li>';
+		} else if (href == '#header') {
+			html += '<li class="dropdown-header">' + icon + item.name + '</li>';
 		} else {
 			html += '<li><a ' + js + ' href="' + href + '" target="' + target + '">' + icon + item.name + '</a></li>';
 		}

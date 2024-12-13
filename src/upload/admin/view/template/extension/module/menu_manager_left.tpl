@@ -34,7 +34,7 @@
 		<?php } ?>
 		<div class="panel panel-default">
 			<div class="panel-heading">
-				<h3 class="panel-title"><i class="fa fa-pencil"></i> <?php echo $text_edit ?></h3>
+				<h3 class="panel-title"><i class="fa fa-pencil"></i> <?php echo $text_edit ?></h3><h3 class="panel-title pull-right">v<?php echo $version ?></h3>
 			</div>
 			<div class="panel-body">
 				<form action="<?php echo $action ?>" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
@@ -78,11 +78,10 @@
 </div>
 <script>
 $(document).ready(function() {
-	let leftMenu = JSON.parse($('input[name=left_menu_data]').val());
-	let presetMenu = JSON.parse($('input[name=preset_data]').val());
+	let leftMenuData = JSON.parse($('input[name=left_menu_data]').val());
+	let presetMenuData = JSON.parse($('input[name=preset_data]').val());
 
-	let menu = buildMenu(leftMenu);
-	$('#left_menu .dd-list').html(menu);
+	$('#left_menu .dd-list').html(buildMenu(leftMenuData));
 	$.each($('#left_menu .dd-item'), function(index, value) {
 		assignEvents(value);
 	});
@@ -95,8 +94,7 @@ $(document).ready(function() {
 		}
 	});
 
-	let menu = buildPresetMenu(presetMenu);
-	$('#preset_menu .dd-list').html(menu);
+	$('#preset_menu .dd-list').html(buildPresetMenu(presetMenuData));
 	$.each($('#preset_menu .dd-item'), function(index, value) {
 		assignEvents(value);
 	});

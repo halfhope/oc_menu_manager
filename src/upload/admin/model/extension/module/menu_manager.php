@@ -56,7 +56,7 @@ class ModelExtensionModuleMenuManager extends Model {
 				// link
 				} elseif (count($exp) > 1 && $exp[0] == 'link') {
 					$link_index = substr($match, 5, strlen($match)-1);
-					$true_value = $this->url->link($link_index, 'user_token=' . $this->session->data['user_token'], true);
+					$true_value = $this->url->link($link_index, 'token=' . $this->session->data['token'], true);
 					$true_value = htmlspecialchars_decode($true_value, ENT_QUOTES);
 					$match = preg_quote($match, '/|');
 				// get
@@ -139,16 +139,22 @@ class ModelExtensionModuleMenuManager extends Model {
 
 	public function linkHasPremissions($link) {
 		$query = parse_url($link, PHP_URL_QUERY);
-		if (!empty($query)) {
-			parse_str($query, $args);
-			if (isset($args['route'])) {
-				if (!in_array($args['route'], $this->permissions_ignore)) {	
-					$shorted_route = substr($args['route'], 0, -strlen('/' . basename($args['route'])));
-					return $this->user->hasPermission('access', $args['route']) || $this->user->hasPermission('access', $shorted_route);
-				} else {
-					return true;
+
+		$is_external_link = (strripos($link, HTTP_SERVER) === false) && (strripos($link, HTTPS_SERVER) === false);
+		if (!$is_external_link) {
+
+			if (!empty($query)) {
+				parse_str($query, $args);
+				if (isset($args['route'])) {
+					if (!in_array($args['route'], $this->permissions_ignore)) {	
+						$shorted_route = substr($args['route'], 0, -strlen('/' . basename($args['route'])));
+						return $this->user->hasPermission('access', $args['route']) || $this->user->hasPermission('access', $shorted_route);
+					} else {
+						return true;
+					}
 				}
 			}
+
 		}
 		return true;
 	}

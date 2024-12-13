@@ -1,4 +1,8 @@
 <?php
+/**
+ * @author Shashakhmetov Talgat <talgatks@gmail.com>
+ */
+
 // Heading
 $_['heading_title']     = 'Menu manager | Left menu';
 
@@ -50,4 +54,4 @@ In links and JS you can use shortcodes:
 $_['error_permission']  = 'Warning: You do not have permission to modify module!';
 
 // Success
-$_['text_success']      = 'Success: You have modified account module!';
+$_['text_success']      = 'Success: You have modified module!';
