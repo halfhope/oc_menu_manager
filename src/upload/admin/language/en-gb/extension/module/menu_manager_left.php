@@ -48,7 +48,9 @@ In links and JS you can use shortcodes:
      <li><b>[product_id]</b>, <b>[user_token]</b> - any $_GET parameters of current page</li>
      <li><b>[config|config_language_id]</b> - store settings</li>
      <li><b>[link|common/home]</b> - generated links</li>
-</ul>';
+</ul>
+Additionally, links can be opened in a pop-up window. Enter the code <b>mmModal(event, true);</b> in JS to accomplish this. It is necessary to include the event parameter. You can cut and remove the top and left menus from the loaded page code by using the second parameter. either true or false.
+';
 
 // Error
 $_['error_permission']  = 'Warning: You do not have permission to modify module!';

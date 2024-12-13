@@ -474,4 +474,5 @@ $(document).ready(function() {
 		</div>
 	</div>
 </div>
+
 <?php echo $footer ?>

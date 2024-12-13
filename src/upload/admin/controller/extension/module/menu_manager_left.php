@@ -8,7 +8,7 @@ class ControllerExtensionModuleMenuManagerLeft extends Controller {
 	private $_route 		= 'extension/module/menu_manager_left'; 
 	private $_model 		= 'model_extension_module_menu_manager'; 
 	private $_model_route 	= 'extension/module/menu_manager'; 
-	private $_version 		= '1.1.2';
+	private $_version 		= '1.1.3';
 
 	private $error = [];
 
@@ -64,6 +64,9 @@ class ControllerExtensionModuleMenuManagerLeft extends Controller {
 		}
 		$data['menus'] = $this->{$this->_model}->recursiveFillVars($menus);
 		$this->registry->set('left_menu_data', $data['menus']);
+
+		$this->document->addStyle('view/javascript/menu_manager/menu_manager.css?v=' . $this->_version);
+		$this->document->addScript('view/javascript/menu_manager/menu_manager.js?v=' . $this->_version);
 	}
 
 	public function menuManagerViewEventHandler(&$route, &$data, &$output) {
