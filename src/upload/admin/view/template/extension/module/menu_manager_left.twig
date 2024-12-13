@@ -1,0 +1,396 @@
+{{ header }}{{ column_left }}
+<div id="content">
+	<div class="page-header">
+		<div class="container-fluid">
+			<div class="pull-right">
+				<button type="submit" id="btn_save_form" form="form-module" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i></button>
+				<a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default"><i class="fa fa-reply"></i></a></div>
+			<h1>{{ heading_title }}</h1>
+			<ul class="breadcrumb">
+				{% for breadcrumb in breadcrumbs %}
+				<li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+				{% endfor %}
+			</ul>
+		</div>
+	</div>
+	<div class="container-fluid">
+		{% if error_warning %}
+		<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error_warning }}
+			<button type="button" class="close" data-dismiss="alert">&times;</button>
+		</div>
+		{% endif %}
+		{% if success %}
+		<div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> {{ success }}
+		<button type="button" class="close" data-dismiss="alert">&times;</button>
+		</div>
+		<script>
+		$(document).ready(function() {
+			setTimeout(function() {
+				$('.alert.alert-success.alert-dismissible').remove()
+			}, 3000);
+		});
+		</script>
+		{% endif %}
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h3 class="panel-title"><i class="fa fa-pencil"></i> {{ text_edit }}</h3>
+			</div>
+			<div class="panel-body">
+				<form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
+					<div class="col-sm-6">
+					{% if left_menu.left_menu_data is defined %}
+						<input type="hidden" value="{{ left_menu.left_menu_data|escape }}" name="left_menu_data">
+						<div class="dd menu_manager" id="left_menu">
+							<div class="panel mh35">
+								<h3 class="pull-left">{{ text_left_menu }}</h3>
+								<div class="pull-right pnl">
+									<span class="btn btn-success btn-sm btn_add">{{ button_add }}</span>
+									<span class="btn btn-primary btn-sm btn_expand">{{ button_expand }}</span>
+									<span class="btn btn-warning btn-sm btn_reset">{{ button_reset }}</span>
+								</div>
+							</div>
+							<ol class="dd-list">
+							</ol>
+						</div>
+					{% endif %}
+					<div class="help_block panel-heading panel-default">
+						{{ left_menu_help }}
+					</div>
+					</div>
+					<div class="col-sm-6">
+						<input type="hidden" value="{{ preset_menu|escape }}" name="preset_data">
+						<div class="dd menu_manager" id="preset_menu">
+							<div class="panel mh35">
+								<h3 class="pull-left">{{ text_preset_menu }}</h3>
+								<div class="pull-right pnl">
+									<span class="btn btn-primary btn-sm btn_expand">{{ button_expand }}</span>
+								</div>
+							</div>
+							<ol class="dd-list">
+							</ol>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+$(document).ready(function() {
+	var leftMenu = JSON.parse($('input[name=left_menu_data]').val());
+	var presetMenu = JSON.parse($('input[name=preset_data]').val());
+
+	var menu = buildMenu(leftMenu);
+	$('#left_menu .dd-list').html(menu);
+	$.each($('#left_menu .dd-item'), function(index, value){
+		assignEvents(value);
+	});
+
+	$('#left_menu').nestable({
+		handleClass: 'dd-handle-btn',
+		maxDepth: 3,
+		callback: function(c, e) {
+			recursiveUpdateVisiblity(e);
+		}
+	});
+
+	var menu = buildPresetMenu(presetMenu);
+	$('#preset_menu .dd-list').html(menu);
+	$.each($('#preset_menu .dd-item'), function(index, value){
+		assignEvents(value);
+	});
+
+	$('#preset_menu').nestable({
+		handleClass: 'dd-handle-btn',
+		maxDepth: 5,
+		callback: function(c, e) {
+			if ($(c).attr('id') == 'left_menu') {
+				var item = {
+					name: $(e).attr('data-name'),
+					href: $(e).attr('data-href'),
+					icon: ''
+				}
+				var htmlItem = buildMenuItem(item);
+				$(c).find(e).replaceWith(htmlItem);
+				var newItem = $(c).find('.dd-item[data-id=' + itemCount + ']');
+				assignEvents(newItem);
+				recursiveUpdateVisiblity(newItem);
+			}
+			if ($(c).children('.dd-list').length) {
+				$(c).children('.dd-list').each(function(index, value){
+					if (!$(value).children('.dd-item').length) {
+						$(value).remove();
+					}
+				});
+			}
+		}
+	});
+
+	$('#left_menu .btn_expand, #preset_menu .btn_expand').on('click', function() {
+		if ($(this).html() == '{{ button_expand }}') {
+			$(this).html('{{ button_collapse }}');
+			$(this).closest('.menu_manager').find('.dd-expand').trigger('click');
+		} else {
+			$(this).html('{{ button_expand }}');
+			$(this).closest('.menu_manager').find('.dd-collapse').trigger('click');
+		}
+	});
+	
+	$('#left_menu .btn_add').on('click', function() {
+		var item = {name:'', href:'', icon:''};
+		var htmlItem = buildMenuItem(item, 1);
+		$('#left_menu .dd-list').first().prepend(htmlItem);
+		assignEvents($('#left_menu .dd-list .dd-item').first());
+	});
+
+	$('#left_menu .btn_reset').on('click', function() {
+		window.location.href = '{{ reset }}';
+	});
+
+	$('#form-module').submit(function(event){
+		$('input[name=left_menu_data]').val(JSON.stringify($('#left_menu').nestable('serialize')));
+		$('input').not('input[name=left_menu_data]').remove();
+		return true;
+	});
+});
+
+var itemCount = 0;
+var currentInput;
+
+function recursiveUpdateVisiblity(e) {
+	itemLevel = getItemLevel(e);
+	if (itemLevel == 1) {
+		$(e).find('input[name*=icon]').first().removeClass('hidden');
+	} else {
+		$(e).find('input[name*=icon]').first().addClass('hidden');
+	}
+	if (itemLevel == 3) {
+		$(e).find('.btn_add_sub').first().addClass('hidden');
+	} else {
+		$(e).find('.btn_add_sub').first().removeClass('hidden');
+	}
+	if ($(e).find('.dd-list').first().length) {
+		$(e).find('.dd-list:first > .dd-item').each(function(index, e2){
+			recursiveUpdateVisiblity($(e2));
+		});
+	}
+} 
+
+function buildMenu(items) {
+	var output = '';
+	$.each(items, function (index, item) {
+		output += buildMenuItem(item, 1);
+	});
+	return output;
+}
+
+function buildMenuItem(item, parentLevel) {
+	itemCount = itemCount + 1;
+	var html = '';
+	var ddItemData = '';
+	item['id'] = itemCount;
+	for (var key in item) {
+		if (key !== 'children') {
+			ddItemData = ddItemData + 'data-' + key + '="' + item[key] + '" ';
+		}
+	}
+	html += '<li class="dd-item ' + ((item['children'] !== undefined && item['children'].length > 0) ? 'dd-collapsed' : '') + '" ' + ddItemData + '>';
+	html += '  <button class="dd-handle-btn" type="button"></button>';
+	html += '  <div class="dd-handle"><span class="caption">' + item.name + '</span>';
+	html += '    <div class="pull-right dd-panel">';
+	html += '      <span class="label label-success btn_add_sub ' + ((parentLevel == 3) ? 'hidden' : '') + '"><i class="fa fa-plus" data-toggle="tooltip" data-original-title="{{ text_add_sub_item }}"></i></span>';
+	html += '      <span class="label label-primary btn_edit"><i class="fa fa-pencil" data-toggle="tooltip" data-original-title="{{ text_edit_item }}"></i></span></span>';
+	html += '      <span class="label label-danger btn_remove"><i class="fa fa-remove" data-toggle="tooltip" data-original-title="{{ text_remove_item }}"></i></span>';
+	html += '    </div>';
+	html += '    <div class="dd-form">';
+	html += '      <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][name]" value="' + item.name + '" title="{{ placeholder_name }}" placeholder="{{ placeholder_name }}">';
+	html += '      <div class="input-group input-group-sm">';
+	html += '        <span class="input-group-btn">';
+	html += '          <button class="btn btn-sm btn-default btn_copy" type="button"><i class="fa fa-copy"></i></button>';
+	html += '        </span>';
+	html += '        <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][href]" value="' + item.href + '" title="{{ placeholder_link }}" placeholder="{{ placeholder_link }}">';
+	html += '      </div>';
+	html += '    <input type="text" class="form-control input-sm ' + ((item.icon == undefined || parentLevel !== 1) ? 'hidden' : '') + '" name="menus[' + itemCount + '][icon]" value="' + ((item.icon == undefined) ? '' : item.icon) + '" title="{{ placeholder_icon }}" placeholder="{{ placeholder_icon }}" data-fa-browser >';
+	html += '    </div>';
+	html += '  </div>';
+	if (item.children !== undefined && item.children.length > 0) {
+		html += '<ol class="dd-list">';
+		parentLevel = parentLevel + 1;
+		$.each(item.children, function (index, sub) {
+			html += buildMenuItem(sub, parentLevel);
+		});
+		html += '</ol>';
+	}
+	html += '</li>';
+	return html;
+}
+
+function buildPresetMenuItem(item, parentLevel) {
+	itemCount = itemCount + 1;
+	var html = '';
+	var ddItemData = '';
+	for (var key in item) {
+		if (key !== 'children') {
+			ddItemData = ddItemData + 'data-' + key + '="' + item[key] + '" ';
+		}
+	}
+	html += '<li class="dd-item ' + ((item['children'] !== undefined && item['children'].length > 0) ? 'dd-collapsed' : '') + '" ' + ddItemData + '>';
+	html += '  <button class="dd-handle-btn" type="button"></button>';
+	html += '  <div class="dd-handle"><span class="caption">' + item.name + '</span>';
+	html += '    <div class="pull-right dd-panel">';
+	html += '      <span class="label label-primary btn_edit ' + ((item.href == '') ? 'hidden' : '') + '"><i class="fa fa-search" data-toggle="tooltip" data-original-title="{{ text_view_item }}"></i></span></span>';
+	html += '    </div>';
+	html += '    <div class="dd-form">';
+	html += '      <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][name]" value="' + item.name + '" title="{{ placeholder_name }}" placeholder="{{ placeholder_name }}">';
+	html += '      <div class="input-group input-group-sm ' + ((item.href == '') ? 'hidden' : '') + '">';
+	html += '        <span class="input-group-btn">';
+	html += '          <span class="btn btn-sm btn-default btn_copy"><i class="fa fa-copy"></i></span>';
+	html += '        </span>';
+	html += '        <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][href]" value="' + item.href + '" title="{{ placeholder_link }}" placeholder="{{ placeholder_link }}">';
+	html += '      </div>';
+	html += '    <input type="text" class="form-control input-sm hidden" name="menus[' + itemCount + '][icon]" value="' + ((item.icon == undefined) ? '' : item.icon) + '" title="{{ placeholder_icon }}" placeholder="{{ placeholder_icon }}" data-fa-browser >';
+	html += '    </div>';
+	html += '  </div>';
+	if (item.children !== undefined && item.children.length > 0) {
+		html += '<ol class="dd-list">';
+		parentLevel = parentLevel + 1;
+		$.each(item.children, function (index, sub) {
+			html += buildPresetMenuItem(sub, parentLevel);
+		});
+		html += '</ol>';
+	}
+	html += '</li>';
+	return html;
+}
+
+function buildPresetMenu(items) {
+	var output = '';
+	$.each(items, function (index, item) {
+		output += buildPresetMenuItem(item, 1);
+	});
+	return output;
+}
+
+function getItemLevel(item){
+	return $(item).parents('.dd-item').length + 1;
+}
+
+function assignEvents(item) {
+
+	$(item).find('.btn_add_sub').first().on('click', function() {
+		var itemData = {name:'', href:'', icon:''};
+		var parentLevel = getItemLevel($(this).closest('.dd-item'));
+		var htmlItem = buildMenuItem(itemData, parentLevel + 1);
+
+		if ($(this).closest('.dd-item').find('.dd-list').length) {
+			$(this).closest('.dd-item').find('.dd-list').first().append(htmlItem);
+		} else {
+			$(this).closest('.dd-handle').after('<ol class="dd-list">' + htmlItem + '</ol>');
+		}
+		if ($(this).closest('.dd-item').hasClass('dd-collapsed')){
+			$(this).closest('.dd-item').removeClass('dd-collapsed');
+		}
+		$(this).closest('.dd').nestable('setParent', $(this).closest('.dd-item'));
+
+		assignEvents($(this).closest('.dd-item').find('.dd-list').first().find('.dd-item').last());
+	});
+
+	var editItem = function(event){
+		$(event.target).closest('.dd-handle').find('.dd-form').toggle();
+		$(event.target).closest('.dd-handle').find('.btn_edit > span.fa').toggleClass('fa-angle-up fa-angle-down');
+	};
+
+	$(item).find('.btn_edit').first().on('click', editItem);
+	$(item).find('.caption').first().on('click', editItem);
+	$(item).find('.dd-handle').first().on('dblclick', editItem).children().on('dblclick', function(){
+		return false;
+	});
+
+	$(item).find('.btn_remove').first().on('click', function() {
+		var id = $(this).closest('.dd-item').attr('data-id');
+		$(this).closest('.dd').nestable('remove', parseInt(id));
+		$(parent).closest('.dd').nestable();
+	});
+
+	$(item).find('input[name*=name]').first().on('input paste', function() {
+		$(this).closest('.dd-handle').find('span.caption').first().html($(this).val());
+		$(this).closest('.dd-item').attr('data-name', $(this).val());
+	});
+
+	$(item).find('input[name*=href]').first().on('input paste', function() {
+		$(this).closest('.dd-item').attr('data-href', $(this).val());
+	});
+
+	$(item).find('input[name*=icon]').first().on('input paste', function() {
+		$(this).closest('.dd-item').attr('data-icon', $(this).val());
+	});
+
+	$(item).find('.btn_copy').first().on('click', function() {
+		var self = this;
+		if (navigator.clipboard == undefined) {
+			console.log('Clipboard API work\'s only over https');
+			return false;
+		}
+		navigator.clipboard.writeText($(self).closest('.input-group').find('input[name*=href]').val());
+		var toggleCopyBtn = function() {
+			$(self).toggleClass('btn-success btn-default').find('i.fa').toggleClass('fa-copy fa-check');
+		}
+		toggleCopyBtn();
+		setTimeout(toggleCopyBtn, 1000);
+	});
+
+	$(item).find('input[data-fa-browser]').first().click(function() {
+		currentInput = $(this);
+		$('#fa-icon-picker').modal();
+		$('#fa-icon-picker .icon.selected').removeClass('selected');
+		$('#fa-icon-picker .icon i[class="fa ' + $(currentInput).val() + '"]').closest('.icon').addClass('selected');
+		$('#fa-icon-picker input[name=search]').focus();
+	});
+
+	$(item).find('[data-toggle="tooltip"]').tooltip({container:'body'});
+}
+</script>
+<script>
+$(document).ready(function() {
+	// fontawesome
+	var icons = ["500px","address-book","address-book-o","address-card","address-card-o","adjust","adn","align-center","align-justify","align-left","align-right","amazon","ambulance","american-sign-language-interpreting","anchor","android","angellist","angle-double-down","angle-double-left","angle-double-right","angle-double-up","angle-down","angle-left","angle-right","angle-up","apple","archive","area-chart","arrow-circle-down","arrow-circle-left","arrow-circle-o-down","arrow-circle-o-left","arrow-circle-o-right","arrow-circle-o-up","arrow-circle-right","arrow-circle-up","arrow-down","arrow-left","arrow-right","arrow-up","arrows","arrows-alt","arrows-h","arrows-v","asl-interpreting","assistive-listening-systems","asterisk","at","audio-description","automobile","backward","balance-scale","ban","bandcamp","bank","bar-chart","bar-chart-o","barcode","bars","bath","bathtub","battery","battery-0","battery-1","battery-2","battery-3","battery-4","battery-empty","battery-full","battery-half","battery-quarter","battery-three-quarters","bed","beer","behance","behance-square","bell","bell-o","bell-slash","bell-slash-o","bicycle","binoculars","birthday-cake","bitbucket","bitbucket-square","bitcoin","black-tie","blind","bluetooth","bluetooth-b","bold","bolt","bomb","book","bookmark","bookmark-o","braille","briefcase","btc","bug","building","building-o","bullhorn","bullseye","bus","buysellads","cab","calculator","calendar","calendar-check-o","calendar-minus-o","calendar-o","calendar-plus-o","calendar-times-o","camera","camera-retro","car","caret-down","caret-left","caret-right","caret-square-o-down","caret-square-o-left","caret-square-o-right","caret-square-o-up","caret-up","cart-arrow-down","cart-plus","cc","cc-amex","cc-diners-club","cc-discover","cc-jcb","cc-mastercard","cc-paypal","cc-stripe","cc-visa","certificate","chain","chain-broken","check","check-circle","check-circle-o","check-square","check-square-o","chevron-circle-down","chevron-circle-left","chevron-circle-right","chevron-circle-up","chevron-down","chevron-left","chevron-right","chevron-up","child","chrome","circle","circle-o","circle-o-notch","circle-thin","clipboard","clock-o","clone","close","cloud","cloud-download","cloud-upload","cny","code","code-fork","codepen","codiepie","coffee","cog","cogs","columns","comment","comment-o","commenting","commenting-o","comments","comments-o","compass","compress","connectdevelop","contao","copy","copyright","creative-commons","credit-card","credit-card-alt","crop","crosshairs","css3","cube","cubes","cut","cutlery","dashboard","dashcube","database","deaf","deafness","dedent","delicious","desktop","deviantart","diamond","digg","dollar","dot-circle-o","download","dribbble","drivers-license","drivers-license-o","dropbox","drupal","edge","edit","eercast","eject","ellipsis-h","ellipsis-v","empire","envelope","envelope-o","envelope-open","envelope-open-o","envelope-square","envira","eraser","etsy","eur","euro","exchange","exclamation","exclamation-circle","exclamation-triangle","expand","expeditedssl","external-link","external-link-square","eye","eye-slash","eyedropper","fa","facebook","facebook-f","facebook-official","facebook-square","fast-backward","fast-forward","fax","feed","female","fighter-jet","file","file-archive-o","file-audio-o","file-code-o","file-excel-o","file-image-o","file-movie-o","file-o","file-pdf-o","file-photo-o","file-picture-o","file-powerpoint-o","file-sound-o","file-text","file-text-o","file-video-o","file-word-o","file-zip-o","files-o","film","filter","fire","fire-extinguisher","firefox","first-order","flag","flag-checkered","flag-o","flash","flask","flickr","floppy-o","folder","folder-o","folder-open","folder-open-o","font","font-awesome","fonticons","fort-awesome","forumbee","forward","foursquare","free-code-camp","frown-o","futbol-o","gamepad","gavel","gbp","ge","gear","gears","genderless","get-pocket","gg","gg-circle","gift","git","git-square","github","github-alt","github-square","gitlab","gittip","glass","glide","glide-g","globe","google","google-plus","google-plus-circle","google-plus-official","google-plus-square","google-wallet","graduation-cap","gratipay","grav","group","h-square","hacker-news","hand-grab-o","hand-lizard-o","hand-o-down","hand-o-left","hand-o-right","hand-o-up","hand-paper-o","hand-peace-o","hand-pointer-o","hand-rock-o","hand-scissors-o","hand-spock-o","hand-stop-o","handshake-o","hard-of-hearing","hashtag","hdd-o","header","headphones","heart","heart-o","heartbeat","history","home","hospital-o","hotel","hourglass","hourglass-1","hourglass-2","hourglass-3","hourglass-end","hourglass-half","hourglass-o","hourglass-start","houzz","html5","i-cursor","id-badge","id-card","id-card-o","ils","image","imdb","inbox","indent","industry","info","info-circle","inr","instagram","institution","internet-explorer","intersex","ioxhost","italic","joomla","jpy","jsfiddle","key","keyboard-o","krw","language","laptop","lastfm","lastfm-square","leaf","leanpub","legal","lemon-o","level-down","level-up","life-bouy","life-buoy","life-ring","life-saver","lightbulb-o","line-chart","link","linkedin","linkedin-square","linode","linux","list","list-alt","list-ol","list-ul","location-arrow","lock","long-arrow-down","long-arrow-left","long-arrow-right","long-arrow-up","low-vision","magic","magnet","mail-forward","mail-reply","mail-reply-all","male","map","map-marker","map-o","map-pin","map-signs","mars","mars-double","mars-stroke","mars-stroke-h","mars-stroke-v","maxcdn","meanpath","medium","medkit","meetup","meh-o","mercury","microchip","microphone","microphone-slash","minus","minus-circle","minus-square","minus-square-o","mixcloud","mobile","mobile-phone","modx","money","moon-o","mortar-board","motorcycle","mouse-pointer","music","navicon","neuter","newspaper-o","object-group","object-ungroup","odnoklassniki","odnoklassniki-square","opencart","openid","opera","optin-monster","outdent","pagelines","paint-brush","paper-plane","paper-plane-o","paperclip","paragraph","paste","pause","pause-circle","pause-circle-o","paw","paypal","pencil","pencil-square","pencil-square-o","percent","phone","phone-square","photo","picture-o","pie-chart","pied-piper","pied-piper-alt","pied-piper-pp","pinterest","pinterest-p","pinterest-square","plane","play","play-circle","play-circle-o","plug","plus","plus-circle","plus-square","plus-square-o","podcast","power-off","print","product-hunt","puzzle-piece","qq","qrcode","question","question-circle","question-circle-o","quora","quote-left","quote-right","ra","random","ravelry","rebel","recycle","reddit","reddit-alien","reddit-square","refresh","registered","remove","renren","reorder","repeat","reply","reply-all","resistance","retweet","rmb","road","rocket","rotate-left","rotate-right","rouble","rss","rss-square","rub","ruble","rupee","s15","safari","save","scissors","scribd","search","search-minus","search-plus","sellsy","send","send-o","server","share","share-alt","share-alt-square","share-square","share-square-o","shekel","sheqel","shield","ship","shirtsinbulk","shopping-bag","shopping-basket","shopping-cart","shower","sign-in","sign-language","sign-out","signal","signing","simplybuilt","sitemap","skyatlas","skype","slack","sliders","slideshare","smile-o","snapchat","snapchat-ghost","snapchat-square","snowflake-o","soccer-ball-o","sort","sort-alpha-asc","sort-alpha-desc","sort-amount-asc","sort-amount-desc","sort-asc","sort-desc","sort-down","sort-numeric-asc","sort-numeric-desc","sort-up","soundcloud","space-shuttle","spinner","spoon","spotify","square","square-o","stack-exchange","stack-overflow","star","star-half","star-half-empty","star-half-full","star-half-o","star-o","steam","steam-square","step-backward","step-forward","stethoscope","sticky-note","sticky-note-o","stop","stop-circle","stop-circle-o","street-view","strikethrough","stumbleupon","stumbleupon-circle","subscript","subway","suitcase","sun-o","superpowers","superscript","support","table","tablet","tachometer","tag","tags","tasks","taxi","telegram","television","tencent-weibo","terminal","text-height","text-width","th","th-large","th-list","themeisle","thermometer","thermometer-0","thermometer-1","thermometer-2","thermometer-3","thermometer-4","thermometer-empty","thermometer-full","thermometer-half","thermometer-quarter","thermometer-three-quarters","thumb-tack","thumbs-down","thumbs-o-down","thumbs-o-up","thumbs-up","ticket","times","times-circle","times-circle-o","times-rectangle","times-rectangle-o","tint","toggle-down","toggle-left","toggle-off","toggle-on","toggle-right","toggle-up","trademark","train","transgender","transgender-alt","trash","trash-o","tree","trello","tripadvisor","trophy","truck","try","tty","tumblr","tumblr-square","turkish-lira","tv","twitch","twitter","twitter-square","umbrella","underline","undo","universal-access","university","unlink","unlock","unlock-alt","unsorted","upload","usb","usd","user","user-circle","user-circle-o","user-md","user-o","user-plus","user-secret","user-times","users","vcard","vcard-o","venus","venus-double","venus-mars","viacoin","viadeo","viadeo-square","video-camera","vimeo","vimeo-square","vine","vk","volume-control-phone","volume-down","volume-off","volume-up","warning","wechat","weibo","weixin","whatsapp","wheelchair","wheelchair-alt","wifi","wikipedia-w","window-close","window-close-o","window-maximize","window-minimize","window-restore","windows","won","wordpress","wpbeginner","wpexplorer","wpforms","wrench","xing","xing-square","y-combinator","y-combinator-square","yahoo","yc","yc-square","yelp","yen","yoast","youtube","youtube-play","youtube-square"];
+	$.each(icons, function(index, value){
+		$('#fa-icon-picker .search_container').append('<div class="icon" data-toggle="tooltip" data-original-title="fa-' + value + '"><i class="fa fa-' + value + '"></i></div>');
+	});
+
+	$('#fa-icon-picker [data-toggle="tooltip"]').tooltip({container:'body'});
+
+	$('#fa-icon-picker input[name=search]').on('input paste', function() {
+		var search = $(this).val();
+		if (search !== '') {
+			$('#fa-icon-picker .search_container .icon').addClass('hidden');
+			$('#fa-icon-picker .search_container .icon i[class*=' + search + ']').closest('.icon').removeClass('hidden');
+		} else {
+			$('#fa-icon-picker .search_container .icon').removeClass('hidden');
+		}
+	});
+
+	$('#fa-icon-picker .icon').on('click', function() {
+		currentInput.val($(this).find('i').attr('class').replace(/fa /, ''));
+		$('#fa-icon-picker').modal('hide');
+		currentInput.trigger('input');
+		$('#fa-icon-picker input[name=search]').val('').trigger('input');
+	});
+});
+</script>
+<div class="modal" id="fa-icon-picker" tabindex="-1" aria-hidden="true" role="dialog">
+	<div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title">{{ modal_title }}</h4>
+			</div>
+			<div class="modal-body">
+				<input type="text" class="form-control" value="" placeholder="{{ modal_search }}" name="search" autocomplete="off">
+				<br />
+				<div class="search_container"></div>
+			</div>
+		</div>
+	</div>
+</div>
+{{ footer }}
