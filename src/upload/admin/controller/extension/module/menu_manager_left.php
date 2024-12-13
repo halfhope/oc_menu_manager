@@ -2,13 +2,18 @@
 class ControllerExtensionModuleMenuManagerLeft extends Controller {
 	private $error = array();
 
-	private $_version 		= '1.0';
+	private $_version 		= '1.1';
 
 	private $_event = [
 		[
 			'code' 		=> 'menu_manager_left_handler',
 			'trigger'	=> 'admin/view/common/column_left/before',
 			'action'	=> 'extension/module/menu_manager_left/menuManagerEventHandler'
+		],
+		[
+			'code' 		=> 'menu_manager_left_add_script',
+			'trigger'	=> 'admin/view/common/column_left/after',
+			'action'	=> 'extension/module/menu_manager_left/menuManagerViewEventHandler'
 		]
 	];
 
@@ -50,8 +55,34 @@ class ControllerExtensionModuleMenuManagerLeft extends Controller {
 			$menus = json_decode($left_menu['left_menu_data'], true);
 		}
 		$data['menus'] = $this->model_extension_module_menu_manager->recursiveFillVars($menus);
+		$this->registry->set('left_menu_data', $data['menus']);
 	}
-	
+
+	public function menuManagerViewEventHandler(&$route, &$data, &$output) {
+		if ($this->registry->has('left_menu_data')) {
+			$left_menu = $this->registry->get('left_menu_data');
+			
+			$this->load->model('extension/module/menu_manager');
+			$left_menu_data = $this->model_extension_module_menu_manager->recursiveFillVars($left_menu);
+
+			$result = '<script>$(document).ready(function(){' . $this->recursiveGenerateJs($left_menu_data) . '});</script>' . PHP_EOL;
+			$output = $result . $output;
+		}
+	}
+
+	public function recursiveGenerateJs($menu) {
+		$result = '';
+		foreach ($menu as $key => $value) {
+			if (isset($value['js']) && !empty($value['js'])) {
+				$result .= "$(document).on('click', '#menu li#{$value['id']}>a', function(event){event.preventDefault();{$value['js']}});" . PHP_EOL;
+			}
+			if (isset($value['children'])) {
+				$result .= $this->recursiveGenerateJs($value['children']);
+			}
+		}
+		return $result;
+	}
+
 	public function reset() {
 		$this->load->language('extension/module/menu_manager_top');
 		$this->load->model('setting/setting');
@@ -64,6 +95,9 @@ class ControllerExtensionModuleMenuManagerLeft extends Controller {
 	}
 
 	public function index() {
+		// check and install
+		$this->install();
+
 		$this->load->language('extension/module/menu_manager_left');
 
 		$this->load->model('extension/module/menu_manager');
@@ -83,18 +117,25 @@ class ControllerExtensionModuleMenuManagerLeft extends Controller {
 		$data['text_view_item']		= $this->language->get('text_view_item');
 		$data['text_remove_item']	= $this->language->get('text_remove_item');
 		$data['text_add_sub_item']	= $this->language->get('text_add_sub_item');
+		$data['text_copy']			= $this->language->get('text_copy');
+		$data['text_js']			= $this->language->get('text_js');
 		$data['text_left_menu']		= $this->language->get('text_left_menu');
 		$data['text_preset_menu']	= $this->language->get('text_preset_menu');
 		$data['placeholder_name']	= $this->language->get('placeholder_name');
 		$data['placeholder_link']	= $this->language->get('placeholder_link');
 		$data['placeholder_icon']	= $this->language->get('placeholder_icon');
 		$data['placeholder_route']	= $this->language->get('placeholder_route');
-		$data['modal_title']		= $this->language->get('modal_title');
-		$data['modal_search']		= $this->language->get('modal_search');
+		$data['modal_js_title']		= $this->language->get('modal_js_title');
+		$data['modal_js_save']		= $this->language->get('modal_js_save');
+		$data['modal_js_cancel']	= $this->language->get('modal_js_cancel');
+		$data['modal_js_clear']		= $this->language->get('modal_js_clear');
+		$data['modal_fa_title']		= $this->language->get('modal_fa_title');
+		$data['modal_fa_search']	= $this->language->get('modal_fa_search');
 		$data['button_expand']		= $this->language->get('button_expand');
 		$data['button_collapse']	= $this->language->get('button_collapse');
 		$data['button_add']			= $this->language->get('button_add');
 		$data['button_reset']		= $this->language->get('button_reset');
+		$data['button_js']			= $this->language->get('button_js');
 		$data['left_menu_help']		= $this->language->get('left_menu_help');
 
 		$data['button_save']		= $this->language->get('button_save');

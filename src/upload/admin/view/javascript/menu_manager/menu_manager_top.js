@@ -1,33 +1,39 @@
-$(document).ready(function() {
-
+window.addEventListener('DOMContentLoaded', (event) => {
+    
 	function makeMenu(menu_data) {
-		var html = '';
+		let html = '';
 		html += '<ul id="header_top_menu" class="nav navbar-nav navbar-left">';
-		$.each(menu_data, function(index, item){
-			html += makeMenuItem(item, 1);
-		});
+		for (const [key, value] of Object.entries(menu_data)) {
+			html += makeMenuItem(value, 1);
+		}
 		html += '</ul>';
 		return html;
 	}
 
 	function makeMenuItem(item, level) {
-		var html = '';
+		let html = '';
+		let js = ((item.js == undefined || item.js == '') ? '' : 'data-js="' + item.id + '"');
+		let href = ((item.href == '') ? '#' : item.href);
+		let target = ((item.target) ? '_blank' : '_self');
+		let icon = ((item.icon == '') ? '' : '<i class="fa ' + item.icon + ' fa-fw"></i> ');
+
 		if (item.children !== undefined && item.children.length) {
 			html += '<li class="dropdown-submenu level' + level + '">';
-			html += '<a href="' + ((item.href == '') ? '#' : item.href) + '" target="' + ((item.target) ? '_blank' : '_self') + '" class="dropdown-toggle" data-toggle="dropdown">' + ((item.icon == '') ? '' : '<i class="fa ' + item.icon + ' fa-fw"></i> ') + item.name + ' <i class="fa fa-caret-down fa-fw"></i></a>';
+			html += '<a ' + js + ' href="' + href + '" target="' + target + '" class="dropdown-toggle" data-toggle="dropdown">' + icon + item.name + ' <i class="fa fa-caret-down fa-fw"></i></a>';
 			html += '<ul class="dropdown-menu level' + level + '">';
-			$.each(item.children, function(sub_index, sub_item) {
+			for (const [sub_index, sub_item] of Object.entries(item.children)) {
 				html += makeMenuItem(sub_item, level + 1);
-			});
+			}
 			html += '</ul>';
 			html += '</li>';
 		} else {
-			html += '<li><a href="' + ((item.href == '') ? '#' : item.href) + '" target="' + ((item.target) ? '_blank' : '_self') + '">' + ((item.icon == '') ? '' : '<i class="fa ' + item.icon + ' fa-fw"></i> ') + item.name + '</a></li>';
+			html += '<li><a ' + js + ' href="' + href + '" target="' + target + '">' + icon + item.name + '</a></li>';
 		}
 		return html;
 	}
 
 	if (topMenuData !== undefined) {
-		$('#header .navbar-brand').after(makeMenu(topMenuData));
+		document.querySelector('#header .navbar-brand').insertAdjacentHTML('afterend', makeMenu(topMenuData));
 	}
+
 });
