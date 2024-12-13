@@ -9,7 +9,7 @@ class MenuManagerLeft extends \Opencart\System\Engine\Controller {
 	private $_route 		= 'extension/menu_manager/module/menu_manager_left'; 
 	private $_model 		= 'model_extension_menu_manager_module_menu_manager'; 
 	private $_model_route 	= 'extension/menu_manager/module/menu_manager'; 
-	private $_version 		= '1.1.2';
+	private $_version 		= '1.1.3';
 
 	private $error = [];
 
@@ -23,6 +23,16 @@ class MenuManagerLeft extends \Opencart\System\Engine\Controller {
 			'code' 		=> 'menu_manager_left_add_script',
 			'trigger'	=> 'admin/view/common/column_left/after',
 			'action'	=> '|menuManagerViewEventHandler'
+		],
+		[
+			'code' 		=> 'menu_manager_left_handler',
+			'trigger'	=> 'admin/view/common/column_left/before',
+			'action'	=> '.menuManagerEventHandler'
+		],
+		[
+			'code' 		=> 'menu_manager_left_add_script',
+			'trigger'	=> 'admin/view/common/column_left/after',
+			'action'	=> '.menuManagerViewEventHandler'
 		]
 	];
 
@@ -79,6 +89,9 @@ class MenuManagerLeft extends \Opencart\System\Engine\Controller {
 		$registry_item->data = $data['menus'];
 
 		$this->registry->set('left_menu_data', $registry_item);
+
+		$this->document->addStyle('/extension/menu_manager/admin/view/javascript/menu_manager.css?v=' . $this->_version);
+		$this->document->addScript('/extension/menu_manager/admin/view/javascript/menu_manager.js?v=' . $this->_version);
 	}
 
 	public function menuManagerViewEventHandler(&$route, &$data, &$output) {

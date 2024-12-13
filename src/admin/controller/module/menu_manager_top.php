@@ -9,7 +9,7 @@ class MenuManagerTop extends \Opencart\System\Engine\Controller {
 	private $_route 		= 'extension/menu_manager/module/menu_manager_top'; 
 	private $_model 		= 'model_extension_menu_manager_module_menu_manager'; 
 	private $_model_route 	= 'extension/menu_manager/module/menu_manager'; 
-	private $_version 		= '1.1.2';
+	private $_version 		= '1.1.3';
 
 	private $error = [];
 
@@ -23,6 +23,16 @@ class MenuManagerTop extends \Opencart\System\Engine\Controller {
 			'code' 		=> 'menu_manager_top_add_script',
 			'trigger'	=> 'admin/view/common/header/after',
 			'action'	=> '|menuManagerViewEventHandler'
+		],
+		[
+			'code' 		=> 'menu_manager_top_add_data',
+			'trigger'	=> 'admin/controller/common/header/before',
+			'action'	=> '.menuManagerControllerEventHandler'
+		],
+		[
+			'code' 		=> 'menu_manager_top_add_script',
+			'trigger'	=> 'admin/view/common/header/after',
+			'action'	=> '.menuManagerViewEventHandler'
 		]
 	];
 
@@ -92,6 +102,8 @@ class MenuManagerTop extends \Opencart\System\Engine\Controller {
 		
 				$this->document->addStyle('/extension/menu_manager/admin/view/javascript/menu_manager.css?v=' . $this->_version);
 				$this->document->addScript('/extension/menu_manager/admin/view/javascript/menu_manager_top.js?v=' . $this->_version);
+				
+				$this->document->addScript('/extension/menu_manager/admin/view/javascript/menu_manager.js?v=' . $this->_version);
 			}
 		}
 	}
