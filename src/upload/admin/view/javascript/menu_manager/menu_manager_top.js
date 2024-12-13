@@ -1,5 +1,6 @@
-window.addEventListener('DOMContentLoaded', (event) => {
-    
+document.onreadystatechange = function () {
+	if (document.readyState == "interactive") {
+	
 	function makeMenu(menu_data) {
 		let html = '';
 		html += '<ul id="header_top_menu" class="nav navbar-nav navbar-left">';
@@ -40,4 +41,5 @@ window.addEventListener('DOMContentLoaded', (event) => {
 		document.querySelector('#header-logo').insertAdjacentHTML('afterend', makeMenu(topMenuData));
 	}
 
-});
+	}
+};

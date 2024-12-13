@@ -1,142 +1,179 @@
+/* loading spinner */
+.loading-progress {
+	z-index: 1;
+	width: 32px;
+	height: 32px;
+	margin: 16px;
+	border: 4px solid #f3f3f3;
+	border-radius: 50%;
+	border-top: 4px solid #3498db;
+	-webkit-animation: spin 2s linear infinite;
+	animation: spin 2s linear infinite;
+}
+@-webkit-keyframes spin {
+	0% { -webkit-transform: rotate(0deg); }
+	100% { -webkit-transform: rotate(360deg); }
+}
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+.v-center {
+	display: flex;
+	justify-content: center;
+}
+/* modal */
+@media (min-width: 768px) {
+	.modal-xl {
+		width: 90%;
+		max-width:1200px;
+	}
+}
+iframe#mm_iframe {
+	width: 100%;
+}
 /* common */
 .dd {
-    display: block;
-    width:100%;
-    min-width: 450px;
-    max-width: unset;
+	display: block;
+	width:100%;
+	min-width: 450px;
+	max-width: unset;
 }
 .dd-item > button.dd-handle-btn:before, .dd-item > button.dd-expand:before, .dd-item > button.dd-collapse:before {
-    font-family: 'FontAwesome';
+	font-family: 'FontAwesome';
 }
 .dd-item > button.dd-expand:before {
-    content: "\f078";
+	content: "\f078";
 }
 .dd-item > button.dd-collapse:before {
-    content: "\f077";
+	content: "\f077";
 }
 .dd-item > button.dd-handle-btn:before {
-    content: "\f255";
-    margin-top: -6px;
+	content: "\f255";
+	margin-top: -6px;
 }
 .dd-handle-btn:hover {
-    cursor: move;
-    cursor: grab;
-    cursor: -moz-grab;
-    cursor: -webkit-grab;
+	cursor: move;
+	cursor: grab;
+	cursor: -moz-grab;
+	cursor: -webkit-grab;
 }
 .dd-item > button {
-    margin: 6px 2px;
+	margin: 6px 2px;
 }
 .dd-handle {
-    font-size: 1.1em;
-    user-select: none;
-    color: #4c4d5a;
-    border-color: #dcdcdc;
-    background: #f6f6f6;
-    text-shadow: 0 -1px 0 rgb(50 50 50 / 0%);
-    height: auto;
-    border-radius: 2px;
+	font-size: 1.1em;
+	user-select: none;
+	color: #4c4d5a;
+	border-color: #dcdcdc;
+	background: #f6f6f6;
+	text-shadow: 0 -1px 0 rgb(50 50 50 / 0%);
+	height: auto;
+	border-radius: 2px;
 }
 .dd-handle .caption {
-    line-height: 20px;
-    max-height: 20px;
-    display: inline-block;
-    cursor: pointer;
-    max-width: 78%;
-    overflow: hidden;
-    vertical-align: top;
+	line-height: 20px;
+	max-height: 20px;
+	display: inline-block;
+	cursor: pointer;
+	max-width: 78%;
+	overflow: hidden;
+	vertical-align: top;
 }
 .dd-handle:hover {
-    background: #f6f6f6;
+	background: #f6f6f6;
 }
 .dd-placeholder {
-    border-radius: 4px;
+	border-radius: 4px;
 }
 .dd-panel {
-    margin-top: -1px;
+	margin-top: -1px;
 }
 .dd-panel .label {
-    cursor: pointer;
+	cursor: pointer;
 }
 .dd-panel .label-success:hover {
-    background: #74c174;
+	background: #74c174;
 }
 .dd-panel .label-danger:hover {
-    background: #e36d5f;
+	background: #e36d5f;
 }
 .dd-panel .label-primary:hover {
-    background: #479fcf;
+	background: #479fcf;
 }
 .dd-form {
-    display: none;
-    clear:both;
+	display: none;
+	clear:both;
 }
 .dd-form *{
-    font-weight: normal;
+	font-weight: normal;
 }
 .dd-form .form-control + .input-group, .dd-form .input-group + .form-control {
-    margin-top:5px;
+	margin-top:5px;
 }
 .form-control + .input-group-addon {
-    border-left: 0;
+	border-left: 0;
 }
 .dd-form input[type="checkbox"] {
 	vertical-align: middle;
 }
 .help_block > ul {
-    margin-top: .5em;
-    padding-left: 2em;
+	margin-top: .5em;
+	padding-left: 2em;
 }
 /* helper */
 .mh35 {
-    min-height: 35px;
+	min-height: 35px;
 	display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
+	justify-content: space-between;
+	flex-wrap: wrap;
 }
 /* ocstore fix */
 input.input-sm {
-    height: 28px !important;
+	height: 28px !important;
 }
 #top_menu.dd > .dd-list > .dd-item > .dd-handle {
 	background: #d7ebff;
 }
 /* fontawesome icon picker */
 #fa-icon-picker {
-    overflow-y: scroll;
+	overflow-y: scroll;
 }
 #fa-icon-picker .icon {
-    flex: 0 0 10%;
-    font-size: 36px;
-    text-align: center;
-    cursor: pointer;
-    display: inline-block;
-    width: 54px;
-    margin: 4px;
+	flex: 0 0 10%;
+	font-size: 36px;
+	text-align: center;
+	cursor: pointer;
+	display: inline-block;
+	width: 54px;
+	margin: 4px;
 }
 #fa-icon-picker .icon:hover {
-    background: #1e91cf;
-    border-radius: 5px;
-    color: #fff;
+	background: #1e91cf;
+	border-radius: 5px;
+	color: #fff;
 }
 #fa-icon-picker .icon.selected {
-    background: #1e91cf;
-    color: #fff;
-    border-radius: 5px;
+	background: #1e91cf;
+	color: #fff;
+	border-radius: 5px;
 }
 /* javascript modal */
 #js-editor {
-    width: 100%;
-    min-height: 550px;
-    resize: vertical;
-    margin: 0;
+	width: 100%;
+	min-height: 550px;
+	resize: vertical;
+	margin: 0;
 }
 .dd-panel .btn_js {
-    display: none;
+	display: none;
 }
 /* header top menu */
 #header_top_menu > li:last-child {
 	border-right: 1px solid #eee;
+}
+#header_top_menu > li + li  {
+	border-left: 1px solid #E1E1E1;
 }
 #header_top_menu .dropdown-submenu {
 	position: relative;
