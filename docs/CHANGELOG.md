@@ -13,3 +13,7 @@
 * fix: Added a check when using a controller function reference
 * revert: Removed the JS generation method in the controller
 
+#### 1.1.1
+
+* feature: Added support for HTML in headers
+
