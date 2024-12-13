@@ -109,7 +109,7 @@ class ModelExtensionModuleMenuManager extends Model {
 				$route = str_replace([$controller, '.php'], '', $value);
 
 				$this->load->language($route, 'extension');
-				$name = strip_tags($this->language->get('heading_title'));
+				$name = $this->language->get('heading_title');
 				$this->language->set('heading_title', '');
 
 				if ($name == 'heading_title' || empty($name) || in_array($route, $this->presets_ignore)) {

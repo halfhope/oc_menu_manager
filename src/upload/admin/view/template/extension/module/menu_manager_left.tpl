@@ -162,6 +162,15 @@ let currentInput;
 let jsEditorWrapper;
 let jsEditor;
 
+function escapeHtml(unsafe) {
+	return unsafe.toString()
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#039;");
+}
+
 function recursiveUpdateVisiblity(e) {
 	itemLevel = getItemLevel(e);
 	if (itemLevel == 1) {
@@ -196,7 +205,7 @@ function buildMenuItem(item, parentLevel) {
 	item['id'] = itemCount;
 	for (let key in item) {
 		if (key !== 'children') {
-			ddItemData = ddItemData + 'data-' + key + '="' + item[key] + '" ';
+			ddItemData = ddItemData + 'data-' + key + '="' + escapeHtml(item[key]) + '" ';
 		}
 	}
 	html += '<li class="dd-item ' + ((item['children'] !== undefined && item['children'].length > 0) ? 'dd-collapsed' : '') + '" ' + ddItemData + '>';
@@ -209,7 +218,7 @@ function buildMenuItem(item, parentLevel) {
 	html += '      <span class="label label-danger btn_remove"><i class="fa fa-remove" data-toggle="tooltip" data-original-title="<?php echo $text_remove_item ?>"></i></span>';
 	html += '    </div>';
 	html += '    <div class="dd-form">';
-	html += '      <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][name]" value="' + item.name + '" title="<?php echo $placeholder_name ?>" placeholder="<?php echo $placeholder_name ?>">';
+	html += '      <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][name]" value="' + escapeHtml(item.name) + '" title="<?php echo $placeholder_name ?>" placeholder="<?php echo $placeholder_name ?>">';
 	html += '      <div class="input-group input-group-sm">';
 	html += '        <span class="input-group-btn">';
 	html += '          <button class="btn btn-sm btn-default btn_copy" type="button"><i class="fa fa-copy"></i></button>';
@@ -243,7 +252,7 @@ function buildPresetMenuItem(item, parentLevel) {
 	let ddItemData = '';
 	for (let key in item) {
 		if (key !== 'children') {
-			ddItemData = ddItemData + 'data-' + key + '="' + item[key] + '" ';
+			ddItemData = ddItemData + 'data-' + key + '="' + escapeHtml(item[key]) + '" ';
 		}
 	}
 	html += '<li class="dd-item ' + ((item['children'] !== undefined && item['children'].length > 0) ? 'dd-collapsed' : '') + '" ' + ddItemData + '>';
@@ -253,7 +262,7 @@ function buildPresetMenuItem(item, parentLevel) {
 	html += '      <span class="label label-primary btn_edit ' + ((item.href == '') ? 'hidden' : '') + '"><i class="fa fa-search" data-toggle="tooltip" data-original-title="<?php echo $text_view_item ?>"></i></span></span>';
 	html += '    </div>';
 	html += '    <div class="dd-form">';
-	html += '      <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][name]" value="' + item.name + '" title="<?php echo $placeholder_name ?>" placeholder="<?php echo $placeholder_name ?>">';
+	html += '      <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][name]" value="' + escapeHtml(item.name) + '" title="<?php echo $placeholder_name ?>" placeholder="<?php echo $placeholder_name ?>">';
 	html += '      <div class="input-group input-group-sm ' + ((item.href == '') ? 'hidden' : '') + '">';
 	html += '        <span class="input-group-btn">';
 	html += '          <span class="btn btn-sm btn-default btn_copy"><i class="fa fa-copy"></i></span>';

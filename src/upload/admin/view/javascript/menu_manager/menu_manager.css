@@ -39,6 +39,7 @@
 }
 .dd-handle .caption {
     line-height: 20px;
+    max-height: 20px;
     display: inline-block;
     cursor: pointer;
     max-width: 78%;
