@@ -31,7 +31,7 @@ class ModelExtensionModuleMenuManager extends Model {
 		'error/not_found'
 	];
 
-	public function recursiveReplaceToken($menus) {
+	public function recursiveReplaceToken(array $menus):array {
 		foreach ($menus as $key => $value) {
 			$menus[$key]['href'] = preg_replace('/user_token=[a-zA-Z0-9]{32}/', 'user_token=[user_token]', $value['href']);
 			if (isset($value['children']) && !empty($value['children'])) {
@@ -40,25 +40,46 @@ class ModelExtensionModuleMenuManager extends Model {
 		}
 		return $menus;
 	}
+	
+	public function shortCode(string $value):string {
+		preg_match_all('/\[([^\]]*)\]/', $value, $matches);
+		if (isset($matches[1])) {
+			foreach ($matches[1] as $index => $match) {
+				$exp = explode('|', $match);
+				// config
+				if (count($exp) > 1 && $exp[0] == 'config') {
+					$config_index = substr($match, 7, strlen($match)-1);
+					$true_value = $this->config->get($config_index);
+					$match = preg_quote($match, '/|');
+				// link
+				} elseif (count($exp) > 1 && $exp[0] == 'link') {
+					$link_index = substr($match, 5, strlen($match)-1);
+					$true_value = $this->url->link($link_index, 'user_token=' . $this->session->data['user_token'], true);
+					$true_value = htmlspecialchars_decode($true_value, ENT_QUOTES);
+					$match = preg_quote($match, '/|');
+				// get
+				} else {
+					$true_value = (isset($this->request->get[$match]) ? $this->request->get[$match] : '');
+					if (empty($true_value)) {
+						$true_value = (isset($this->request->request[$match]) ? $this->request->request[$match] : '');
+					}
+				}
+				$value = preg_replace('/\[' . $match . '\]/', $true_value, $value);
+			}
+		}
+		return $value;
+	}
 
-	public function recursiveFillVars($menus) {
+	public function recursiveFillVars(array $menus):array {
 		foreach ($menus as $key => $value) {
-			if ($this->linkHasPremissions($value['href'])) {
-				preg_match_all('/\[([^\]]*)\]/', $menus[$key]['href'], $matches);
-				if (isset($matches[1])) {
-					foreach ($matches[1] as $index => $match_index) {
-						$exp = explode('|', $match_index);
-						if (count($exp) > 1 && $exp[0] == 'config') {
-							$config_index = substr($match_index, 7, strlen($match_index)-1);
-							$get_value = $this->config->get($config_index);
-							$match_index = str_replace('|', '\|', $match_index);
-						} else {
-							$get_value = (isset($this->request->get[$match_index]) ? $this->request->get[$match_index] : '');
-							if (empty($get_value)) {
-								$get_value = (isset($this->request->request[$match_index]) ? $this->request->request[$match_index] : '');
-							}
-						}
-						$menus[$key]['href'] = preg_replace('/\[' . $match_index . '\]/', $get_value, $menus[$key]['href']);
+			$link_exists = isset($value['href']);
+			$href = $link_exists ? $this->shortCode($value['href']) : '';
+			$has_permission = $link_exists && $this->linkHasPremissions($href);
+			if ($has_permission || !$link_exists) {
+				if ($has_permission) {
+					$menus[$key]['href'] = $href;
+					if (isset($menus[$key]['js'])) {
+						$menus[$key]['js'] = $this->shortCode($menus[$key]['js']);
 					}
 				}
 				if (isset($menus[$key]['children']) && !empty($menus[$key]['children'])) {
@@ -66,17 +87,17 @@ class ModelExtensionModuleMenuManager extends Model {
 				} else {
 					$menus[$key]['children'] = [];
 				}
-				if (empty($menus[$key]['href']) && empty($menus[$key]['children'])) {
+				if ($link_exists && empty($menus[$key]['href']) && empty($menus[$key]['children'])) {
 					unset($menus[$key]);
 				}
-			} else {
+			} elseif ($link_exists) {
 				unset($menus[$key]);
 			}
 		}
 		return $menus;
 	}
 
-	public function recursiveGlob($pattern, $flags = 0) {
+	public function recursiveGlob(string $pattern, int $flags = 0):array {
 		$files = glob($pattern, $flags);
 		$result = [];
 		$controller = DIR_APPLICATION . 'controller/';
@@ -111,20 +132,23 @@ class ModelExtensionModuleMenuManager extends Model {
 		return $result;
 	}
 
-	public function linkHasPremissions($link) {
+	public function linkHasPremissions(string $link):bool {
 		$query = parse_url($link, PHP_URL_QUERY);
 		if (!empty($query)) {
 			parse_str($query, $args);
 			if (isset($args['route'])) {
 				if (!in_array($args['route'], $this->permissions_ignore)) {	
-					return $this->user->hasPermission('access', $args['route']);
+					$shorted_route = substr($args['route'], 0, -strlen('/' . basename($args['route'])));
+					return $this->user->hasPermission('access', $args['route']) || $this->user->hasPermission('access', $shorted_route);
+				} else {
+					return true;
 				}
 			}
 		}
 		return true;
 	}
 
-	public function getPresets() {
+	public function getPresets():array {
 		return $this->recursiveGlob(DIR_APPLICATION . 'controller/*.php', GLOB_BRACE);
 	}
 }

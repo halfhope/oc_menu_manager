@@ -14,11 +14,11 @@
 .dd-item > button.dd-collapse:before {
     content: "\f077";
 }
-.dd-item > button.dd-handle-btn:before{
+.dd-item > button.dd-handle-btn:before {
     content: "\f255";
     margin-top: -6px;
 }
-.dd-handle-btn:hover{
+.dd-handle-btn:hover {
     cursor: move;
     cursor: grab;
     cursor: -moz-grab;
@@ -27,7 +27,7 @@
 .dd-item > button {
     margin: 6px 2px;
 }
-.dd-handle{
+.dd-handle {
     font-size: 1.1em;
     user-select: none;
     color: #4c4d5a;
@@ -37,7 +37,7 @@
     height: auto;
     border-radius: 2px;
 }
-.dd-handle .caption{
+.dd-handle .caption {
     line-height: 20px;
     display: inline-block;
     cursor: pointer;
@@ -45,25 +45,25 @@
     overflow: hidden;
     vertical-align: top;
 }
-.dd-handle:hover{
+.dd-handle:hover {
     background: #f6f6f6;
 }
-.dd-placeholder{
+.dd-placeholder {
     border-radius: 4px;
 }
-.dd-panel{
+.dd-panel {
     margin-top: -1px;
 }
-.dd-panel .label{
+.dd-panel .label {
     cursor: pointer;
 }
-.dd-panel .label-success:hover{
+.dd-panel .label-success:hover {
     background: #74c174;
 }
-.dd-panel .label-danger:hover{
+.dd-panel .label-danger:hover {
     background: #e36d5f;
 }
-.dd-panel .label-primary:hover{
+.dd-panel .label-primary:hover {
     background: #479fcf;
 }
 .dd-form {
@@ -76,12 +76,15 @@
 .dd-form .form-control + .input-group, .dd-form .input-group + .form-control {
     margin-top:5px;
 }
-.dd-form .btn{
-    outline:none;
-    transition: all 200ms;
+.form-control + .input-group-addon {
+    border-left: 0;
 }
-.dd-form input[type="checkbox"]{
+.dd-form input[type="checkbox"] {
 	vertical-align: middle;
+}
+.help_block > ul {
+    margin-top: .5em;
+    padding-left: 2em;
 }
 /* helper */
 .mh35 {
@@ -119,6 +122,16 @@ input.input-sm {
     background: #1e91cf;
     color: #fff;
     border-radius: 5px;
+}
+/* javascript modal */
+#js-editor {
+    width: 100%;
+    min-height: 550px;
+    resize: vertical;
+    margin: 0;
+}
+.dd-panel .btn_js {
+    display: none;
 }
 /* header top menu */
 #header_top_menu > li:last-child {

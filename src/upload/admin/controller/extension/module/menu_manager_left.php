@@ -2,26 +2,31 @@
 class ControllerExtensionModuleMenuManagerLeft extends Controller {
 	private $error = array();
 
-	private $_version 		= '1.0';
+	private $_version 		= '1.1';
 
 	private $_event = [
 		[
 			'code' 		=> 'menu_manager_left_handler',
 			'trigger'	=> 'admin/view/common/column_left/before',
 			'action'	=> 'extension/module/menu_manager_left/menuManagerEventHandler'
+		],
+		[
+			'code' 		=> 'menu_manager_left_add_script',
+			'trigger'	=> 'admin/view/common/column_left/after',
+			'action'	=> 'extension/module/menu_manager_left/menuManagerViewEventHandler'
 		]
 	];
 
-	public function install() {
+	public function install():void {
 		$this->load->model('setting/event');
 		foreach ($this->_event as $key => $_event) {
-			if(!$result = $this->model_setting_event->getEvent($_event['code'], $_event['trigger'], $_event['action'])) {
+			if(!$this->model_setting_event->getEventByCode($_event['code'])) {
 				$this->model_setting_event->addEvent($_event['code'], $_event['trigger'], $_event['action']);
 			}
 		}
 	}
 
-	public function uninstall() {
+	public function uninstall():void {
 		$this->load->model('setting/event');
 		foreach ($this->_event as $key => $_event) {
 			$this->model_setting_event->deleteEventByCode($_event['code']);
@@ -31,7 +36,7 @@ class ControllerExtensionModuleMenuManagerLeft extends Controller {
 		$this->model_setting_setting->deleteSetting('left_menu');
 	}
 
-	public function menuManagerEventHandler(&$route, &$data, &$code) {
+	public function menuManagerEventHandler(string &$route, array &$data, string &$code):void {
 		$menus = isset($data['menus']) ? $data['menus'] : [];
 		
 		$this->load->model('setting/setting');
@@ -50,9 +55,35 @@ class ControllerExtensionModuleMenuManagerLeft extends Controller {
 			$menus = json_decode($left_menu['left_menu_data'], true);
 		}
 		$data['menus'] = $this->model_extension_module_menu_manager->recursiveFillVars($menus);
+		$this->registry->set('left_menu_data', $data['menus']);
 	}
-	
-	public function reset() {
+
+	public function menuManagerViewEventHandler(string &$route, array &$data, string &$output):void {
+		if ($this->registry->has('left_menu_data')) {
+			$left_menu = $this->registry->get('left_menu_data');
+			
+			$this->load->model('extension/module/menu_manager');
+			$left_menu_data = $this->model_extension_module_menu_manager->recursiveFillVars($left_menu);
+
+			$result = '<script>$(document).ready(function(){' . $this->recursiveGenerateJs($left_menu_data) . '});</script>' . PHP_EOL;
+			$output = $result . $output;
+		}
+	}
+
+	public function recursiveGenerateJs(array $menu):string {
+		$result = '';
+		foreach ($menu as $key => $value) {
+			if (isset($value['js']) && !empty($value['js'])) {
+				$result .= "$(document).on('click', '#menu li#{$value['id']}>a', function(event){event.preventDefault();{$value['js']}});" . PHP_EOL;
+			}
+			if (isset($value['children'])) {
+				$result .= $this->recursiveGenerateJs($value['children']);
+			}
+		}
+		return $result;
+	}
+
+	public function reset():void {
 		$this->load->language('extension/module/menu_manager_top');
 		$this->load->model('setting/setting');
 
@@ -63,7 +94,10 @@ class ControllerExtensionModuleMenuManagerLeft extends Controller {
 		$this->response->redirect($this->url->link('extension/module/menu_manager_left', 'user_token=' . $this->session->data['user_token'], true));
 	}
 
-	public function index() {
+	public function index():void {
+		// check and install
+		$this->install();
+
 		$this->load->language('extension/module/menu_manager_left');
 
 		$this->load->model('extension/module/menu_manager');
@@ -132,7 +166,7 @@ class ControllerExtensionModuleMenuManagerLeft extends Controller {
 		$this->response->setOutput($this->load->view('extension/module/menu_manager_left', $data));
 	}
 
-	protected function validate() {
+	protected function validate():bool {
 		if (!$this->user->hasPermission('modify', 'extension/module/menu_manager_left')) {
 			$this->error['warning'] = $this->language->get('error_permission');
 		}
