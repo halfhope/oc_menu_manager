@@ -106,7 +106,7 @@ class ModelExtensionModuleMenuManager extends Model {
 			foreach ($files as $key => $value) {
 				$route = str_replace([$controller, '.php'], '', $value);
 				$this->load->language($route, 'extension');
-				$name = strip_tags($this->language->get('extension')->get('heading_title'));
+				$name = $this->language->get('extension')->get('heading_title');
 				if ($name == 'heading_title' || in_array($route, $this->presets_ignore)) {
 					continue;
 				}
