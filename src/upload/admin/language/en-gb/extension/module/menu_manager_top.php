@@ -1,4 +1,8 @@
 <?php
+/**
+ * @author Shashakhmetov Talgat <talgatks@gmail.com>
+ */
+
 // Heading
 $_['heading_title']     = 'Menu manager | Top menu';
 
@@ -46,10 +50,10 @@ In links and JS you can use shortcodes:
      <li><b>[config|config_language_id]</b> - store settings</li>
      <li><b>[link|common/home]</b> - generated links</li>
 </ul>
-In the root elements (marked in blue), separated by commas, you can specify the routes in which their child menu items will be displayed. If you leave this field blank, menu items will be available in all sections.';
+In the root elements (marked in blue), separated by commas, you can specify the routes in which their child menu items will be displayed. If you leave this field blank, menu items will be available in all sections. <br />You can also use a separator and title for menu items. To do this, instead of the menu item link, specify:<ul><li><b>#divider - menu separator</b></li><li><b>#header  - menu header</b></li></ul>';
 
 // Error
 $_['error_permission']  = 'Warning: You do not have permission to modify module!';
 
 // Success
-$_['text_success']      = 'Success: You have modified account module!';
+$_['text_success']      = 'Success: You have modified module!';

@@ -31,7 +31,7 @@ class ModelExtensionModuleMenuManager extends Model {
 		'error/not_found'
 	];
 
-	public function recursiveReplaceToken(array $menus):array {
+	public function recursiveReplaceToken($menus) {
 		foreach ($menus as $key => $value) {
 			$menus[$key]['href'] = preg_replace('/user_token=[a-zA-Z0-9]{32}/', 'user_token=[user_token]', $value['href']);
 			if (isset($value['children']) && !empty($value['children'])) {
@@ -41,7 +41,7 @@ class ModelExtensionModuleMenuManager extends Model {
 		return $menus;
 	}
 	
-	public function shortCode(string $value):string {
+	public function shortCode($value) {
 		preg_match_all('/\[([^\]]*)\]/', $value, $matches);
 		if (isset($matches[1])) {
 			foreach ($matches[1] as $index => $match) {
@@ -70,7 +70,7 @@ class ModelExtensionModuleMenuManager extends Model {
 		return $value;
 	}
 
-	public function recursiveFillVars(array $menus):array {
+	public function recursiveFillVars($menus) {
 		foreach ($menus as $key => $value) {
 			$link_exists = isset($value['href']);
 			$href = $link_exists ? $this->shortCode($value['href']) : '';
@@ -97,7 +97,7 @@ class ModelExtensionModuleMenuManager extends Model {
 		return $menus;
 	}
 
-	public function recursiveGlob(string $pattern, int $flags = 0):array {
+	public function recursiveGlob($pattern, $flags = 0) {
 		$files = glob($pattern, $flags);
 		$result = [];
 		$controller = DIR_APPLICATION . 'controller/';
@@ -132,23 +132,29 @@ class ModelExtensionModuleMenuManager extends Model {
 		return $result;
 	}
 
-	public function linkHasPremissions(string $link):bool {
+	public function linkHasPremissions($link) {
 		$query = parse_url($link, PHP_URL_QUERY);
-		if (!empty($query)) {
-			parse_str($query, $args);
-			if (isset($args['route'])) {
-				if (!in_array($args['route'], $this->permissions_ignore)) {	
-					$shorted_route = substr($args['route'], 0, -strlen('/' . basename($args['route'])));
-					return $this->user->hasPermission('access', $args['route']) || $this->user->hasPermission('access', $shorted_route);
-				} else {
-					return true;
+
+		$is_external_link = (strripos($link, HTTP_SERVER) === false) && (strripos($link, HTTPS_SERVER) === false);
+		if (!$is_external_link) {
+
+			if (!empty($query)) {
+				parse_str($query, $args);
+				if (isset($args['route'])) {
+					if (!in_array($args['route'], $this->permissions_ignore)) {	
+						$shorted_route = substr($args['route'], 0, -strlen('/' . basename($args['route'])));
+						return $this->user->hasPermission('access', $args['route']) || $this->user->hasPermission('access', $shorted_route);
+					} else {
+						return true;
+					}
 				}
 			}
+
 		}
 		return true;
 	}
 
-	public function getPresets():array {
+	public function getPresets() {
 		return $this->recursiveGlob(DIR_APPLICATION . 'controller/*.php', GLOB_BRACE);
 	}
 }

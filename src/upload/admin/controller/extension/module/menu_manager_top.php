@@ -1,8 +1,16 @@
 <?php
-class ControllerExtensionModuleMenuManagerTop extends Controller {
-	private $error = array();
+/**
+ * @author Shashakhmetov Talgat <talgatks@gmail.com>
+ */
 
-	private $_version 		= '1.1.1';
+class ControllerExtensionModuleMenuManagerTop extends Controller {
+
+	private $_route 		= 'extension/module/menu_manager_top'; 
+	private $_model 		= 'model_extension_module_menu_manager'; 
+	private $_model_route 	= 'extension/module/menu_manager'; 
+	private $_version 		= '1.1.2';
+
+	private $error = [];
 
 	private $_event = [
 		[
@@ -17,7 +25,7 @@ class ControllerExtensionModuleMenuManagerTop extends Controller {
 		]
 	];
 
-	public function install():void {
+	public function install() {
 		$this->load->model('setting/event');
 		foreach ($this->_event as $key => $_event) {
 			if(!$this->model_setting_event->getEventByCode($_event['code'])) {
@@ -26,7 +34,7 @@ class ControllerExtensionModuleMenuManagerTop extends Controller {
 		}
 	}
 
-	public function uninstall():void {
+	public function uninstall() {
 		$this->load->model('setting/event');
 		foreach ($this->_event as $key => $_event) {
 			$this->model_setting_event->deleteEventByCode($_event['code']);
@@ -36,7 +44,7 @@ class ControllerExtensionModuleMenuManagerTop extends Controller {
 		$this->model_setting_setting->deleteSetting('top_menu');
 	}
 	
-	public function menuManagerControllerEventHandler(string &$route, array &$data):void {
+	public function menuManagerControllerEventHandler(&$route, &$data) {
 		if (!isset($this->request->get['user_token']) || !isset($this->session->data['user_token']) || ($this->request->get['user_token'] != $this->session->data['user_token'])) {
 			return;
 		}
@@ -74,19 +82,19 @@ class ControllerExtensionModuleMenuManagerTop extends Controller {
 		}
 	}
 
-	public function menuManagerViewEventHandler(string &$route, array &$data, string &$output):void {
+	public function menuManagerViewEventHandler(&$route, &$data, &$output) {
 		if ($this->registry->has('top_menu_data')) {
 			$top_menu = $this->registry->get('top_menu_data');
 			
-			$this->load->model('extension/module/menu_manager');
-			$top_menu_data = $this->model_extension_module_menu_manager->recursiveFillVars($top_menu);
+			$this->load->model($this->_model_route);
+			$top_menu_data = $this->{$this->_model}->recursiveFillVars($top_menu);
 			
 			$output .= PHP_EOL . '<script>var topMenuData = ' . json_encode($top_menu_data) . ';</script>' . PHP_EOL;
 			$output .= '<script>$(document).ready(function(){' . $this->recursiveGenerateJs($top_menu_data) . '});</script>' . PHP_EOL;
 		}
 	}
 
-	public function recursiveGenerateJs($menu):string {
+	public function recursiveGenerateJs($menu) {
 		$result = '';
 		foreach ($menu as $key => $value) {
 			if (isset($value['js']) && !empty($value['js'])) {
@@ -99,28 +107,29 @@ class ControllerExtensionModuleMenuManagerTop extends Controller {
 		return $result;
 	}
 
-	public function reset():void {
-		$this->load->language('extension/module/menu_manager_top');
+	public function reset() {
+		$this->load->language($this->_route);
 		$this->load->model('setting/setting');
 
 		if (($this->request->server['REQUEST_METHOD'] == 'GET') && $this->validate()) {	
 			$this->model_setting_setting->editSetting('top_menu', ['top_menu_data' => '{}']);
 			$this->session->data['success'] = $this->language->get('text_success');
 		}
-		$this->response->redirect($this->url->link('extension/module/menu_manager_top', 'user_token=' . $this->session->data['user_token'], true));
+		$this->response->redirect($this->url->link($this->_route, 'user_token=' . $this->session->data['user_token'], true));
 	}
 
-	public function index():void {
+	public function index() {
 		// check and install
 		$this->install();
 
-		$this->load->language('extension/module/menu_manager_top');
+		$this->load->language($this->_route);
 
-		$this->load->model('extension/module/menu_manager');
+		$this->load->model($this->_model_route);
 		$this->load->model('setting/setting');
 
 		$this->document->setTitle($this->language->get('heading_title'));
-		
+		$data['version'] = $this->_version;
+
 		$this->document->addScript('view/javascript/menu_manager/jquery.nestable.js');
 		$this->document->addStyle('view/javascript/menu_manager/jquery.nestable.css');
 		
@@ -133,7 +142,7 @@ class ControllerExtensionModuleMenuManagerTop extends Controller {
 			$this->model_setting_setting->editSetting('top_menu', $form_data);
 
 			$this->session->data['success'] = $this->language->get('text_success');
-			$this->response->redirect($this->url->link('extension/module/menu_manager_top', 'user_token=' . $this->session->data['user_token'], true));
+			$this->response->redirect($this->url->link($this->_route, 'user_token=' . $this->session->data['user_token'], true));
 		}
 
 		if (isset($this->error['warning'])) {
@@ -150,25 +159,25 @@ class ControllerExtensionModuleMenuManagerTop extends Controller {
 			$data['success'] = '';
 		}
 
-		$data['breadcrumbs'] = array();
+		$data['breadcrumbs'] = [];
 
-		$data['breadcrumbs'][] = array(
+		$data['breadcrumbs'][] = [
 			'text' => $this->language->get('text_home'),
 			'href' => $this->url->link('common/dashboard', 'user_token=' . $this->session->data['user_token'], true)
-		);
+		];
 
-		$data['breadcrumbs'][] = array(
+		$data['breadcrumbs'][] = [
 			'text' => $this->language->get('text_extension'),
 			'href' => $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=module', true)
-		);
+		];
 
-		$data['breadcrumbs'][] = array(
+		$data['breadcrumbs'][] = [
 			'text' => $this->language->get('heading_title'),
-			'href' => $this->url->link('extension/module/menu_manager_top', 'user_token=' . $this->session->data['user_token'], true)
-		);
+			'href' => $this->url->link($this->_route, 'user_token=' . $this->session->data['user_token'], true)
+		];
 
-		$data['action'] = $this->url->link('extension/module/menu_manager_top', 'user_token=' . $this->session->data['user_token'], true);
-		$data['reset'] = $this->url->link('extension/module/menu_manager_top' . '/reset', 'user_token=' . $this->session->data['user_token'], true);
+		$data['action'] = $this->url->link($this->_route, 'user_token=' . $this->session->data['user_token'], true);
+		$data['reset'] = $this->url->link($this->_route . '/reset', 'user_token=' . $this->session->data['user_token'], true);
 		$data['reset'] = html_entity_decode($data['reset'], ENT_COMPAT, 'UTF-8');
 		$data['cancel'] = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=module', true);
 		
@@ -178,17 +187,17 @@ class ControllerExtensionModuleMenuManagerTop extends Controller {
 			$data['top_menu']['top_menu_data'] = '{}';
 		}
 		
-		$data['preset_menu'] = json_encode($this->model_extension_module_menu_manager->getPresets());
+		$data['preset_menu'] = json_encode($this->{$this->_model}->getPresets());
 
 		$data['header'] = $this->load->controller('common/header');
 		$data['column_left'] = $this->load->controller('common/column_left');
 		$data['footer'] = $this->load->controller('common/footer');
 
-		$this->response->setOutput($this->load->view('extension/module/menu_manager_top', $data));
+		$this->response->setOutput($this->load->view($this->_route, $data));
 	}
 
-	protected function validate():bool {
-		if (!$this->user->hasPermission('modify', 'extension/module/menu_manager_top')) {
+	protected function validate() {
+		if (!$this->user->hasPermission('modify', $this->_route)) {
 			$this->error['warning'] = $this->language->get('error_permission');
 		}
 
