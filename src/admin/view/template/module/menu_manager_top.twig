@@ -1,0 +1,500 @@
+{{ header }}{{ column_left }}
+<div id="content">
+	<div class="page-header">
+		<div class="container-fluid">
+			<div class="float-end">
+				<button type="submit" id="btn_save_form" form="form-module" data-bs-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i></button>
+				<a href="{{ cancel }}" data-bs-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-light"><i class="fa fa-reply"></i></a>
+			</div>
+			<h1>{{ heading_title }}</h1>
+			<ol class="breadcrumb">
+				{% for breadcrumb in breadcrumbs %}
+					<li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+				{% endfor %}
+			</ol>
+		</div>
+	</div>
+	<div class="container-fluid">
+		{% if error_warning %}
+			<div class="alert alert-danger alert-dismissible"><i class="fas fa-exclamation-circle"></i> {{ error_warning }}
+				<button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+			</div>
+		{% endif %}
+		{% if success %}
+		<div class="alert alert-success"><i class="fas fa-check-circle"></i> {{ success }}
+			<button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+		{% endif %}
+		<script>
+		$(document).ready(function() {
+			setTimeout(function() {
+				$('.alert.alert-success').remove()
+			}, 3000);
+		});
+		</script>
+		<div class="card">
+			<div class="card-header"><i class="fas fa-list"></i> {{ text_edit }}<span class="float-end">v{{ version }}</span></div>
+			<div class="card-body">
+				<div class="menu-manager-container">
+					<form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
+						<div class="row">
+							<div class="col">
+							{% if top_menu.top_menu_data is defined %}
+								<input type="hidden" value="{{ top_menu.top_menu_data|escape }}" name="top_menu_data">
+								<div class="dd menu_manager" id="top_menu">
+									<div class="panel mh35">
+										<h3 class="float-start">{{ text_top_menu }}</h3>
+										<div class="float-end pnl">
+											<span class="btn btn-success btn-sm btn_add">{{ button_add }}</span>
+											<span class="btn btn-primary btn-sm btn_expand">{{ button_collapse }}</span>
+											<span class="btn btn-warning btn-sm btn_reset">{{ button_reset }}</span>
+										</div>
+									</div>
+									<ol class="dd-list">
+									</ol>
+								</div>
+							{% endif %}
+							<div class="help_block panel-heading panel-default">
+								{{ top_menu_help }}
+							</div>
+							</div>
+							<div class="col">
+								<input type="hidden" value="{{ preset_menu|escape }}" name="preset_data">
+								<div class="dd menu_manager" id="preset_menu">
+									<div class="panel mh35">
+										<h3 class="float-start">{{ text_preset_menu }}</h3>
+										<div class="float-end pnl">
+											<span class="btn btn-primary btn-sm btn_expand">{{ button_expand }}</span>
+										</div>
+									</div>
+									<ol class="dd-list">
+									</ol>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+$(document).ready(function() {
+	let topMenuData = JSON.parse($('input[name=top_menu_data]').val());
+	let presetMenuData = JSON.parse($('input[name=preset_data]').val());
+
+	$('#top_menu .dd-list').html(buildMenu(topMenuData));
+	$.each($('#top_menu .dd-item'), function(index, value) {
+		assignEvents(value);
+	});
+
+	$('#top_menu').nestable({
+		handleClass: 'dd-handle-btn',
+		maxDepth: 5,
+		callback: function(c, e) {
+			recursiveUpdateVisiblity(e);
+		}
+	});
+
+	$('#preset_menu .dd-list').html(buildPresetMenu(presetMenuData));
+	$.each($('#preset_menu .dd-item'), function(index, value) {
+		assignEvents(value);
+	});
+
+	$('#preset_menu').nestable({
+		handleClass: 'dd-handle-btn',
+		maxDepth: 5,
+		callback: function(c, e) {
+			if ($(c).attr('id') == 'top_menu') {
+				let item = {
+					name: $(e).attr('data-name'),
+					href: $(e).attr('data-href'),
+					target: 1,
+					icon: ''
+				}
+				let htmlItem = buildMenuItem(item);
+				$(c).find(e).replaceWith(htmlItem);
+				let newItem = $(c).find('.dd-item[data-id=' + itemCount + ']');
+				assignEvents(newItem);
+				recursiveUpdateVisiblity(newItem);
+			}
+			if ($(c).children('.dd-list').length) {
+				$(c).children('.dd-list').each(function(index, value) {
+					if (!$(value).children('.dd-item').length) {
+						$(value).remove();
+					}
+				});
+			}
+		}
+	});
+
+	$('#top_menu .btn_expand, #preset_menu .btn_expand').on('click', function() {
+		if ($(this).html() == '{{ button_expand }}') {
+			$(this).html('{{ button_collapse }}');
+			$(this).closest('.menu_manager').find('.dd-expand').trigger('click');
+		} else {
+			$(this).html('{{ button_expand }}');
+			$(this).closest('.menu_manager').find('.dd-collapse').trigger('click');
+		}
+	});
+	
+	$('#top_menu .btn_add').on('click', function() {
+		let item = {name:'', href:'', target:1, icon:''};
+		let htmlItem = buildMenuItem(item, 1);
+		$('#top_menu .dd-list').first().prepend(htmlItem);
+		assignEvents($('#top_menu .dd-list .dd-item').first());
+	});
+
+	$('#top_menu .btn_reset').on('click', function() {
+		window.location.href = '{{ reset }}';
+	});
+
+	$('#form-module').submit(function(event) {
+		$('.dd-form').css('display', 'none');
+		$('.dd-form .fa-angle-up').removeClass('fa-angle-up').addClass('fa-angle-down');
+		$('input[name=top_menu_data]').val(JSON.stringify($('#top_menu').nestable('serialize')));
+		$('input').not('input[name=top_menu_data]').remove();
+		return true;
+	});
+});
+
+var itemCount = 0;
+var currentInput;
+var jsEditorWrapper;
+var jsEditor;
+
+function escapeHtml(unsafe) {
+	return unsafe.toString()
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#039;");
+}
+
+function recursiveUpdateVisiblity(e) {
+	itemLevel = getItemLevel(e);
+	if (itemLevel == 1) {
+		$(e).find('.dd-panel > .btn_js').addClass('visually-hidden');
+		$(e).find('.input-group').first().addClass('visually-hidden');
+		$(e).find('input[name*=icon]').first().addClass('visually-hidden');
+		$(e).find('input[name*=name]').first().attr('placeholder', '{{ placeholder_route }}');
+	} else {
+		$(e).find('.dd-panel > .btn_js').removeClass('visually-hidden');
+		$(e).find('.input-group').first().removeClass('visually-hidden');
+		$(e).find('input[name*=icon]').first().removeClass('visually-hidden');
+		$(e).find('input[name*=name]').first().attr('placeholder', '{{ placeholder_name }}');
+	}
+	if (itemLevel == 5) {
+		$(e).find('.btn_add_sub').first().addClass('visually-hidden');
+	} else {
+		$(e).find('.btn_add_sub').first().removeClass('visually-hidden');
+	}
+	if ($(e).find('.dd-list').first().length) {
+		$(e).find('.dd-list:first > .dd-item').each(function(index, e2) {
+			recursiveUpdateVisiblity($(e2));
+		});
+	}
+} 
+
+function buildMenu(items) {
+	let output = '';
+	$.each(items, function (index, item) {
+		output += buildMenuItem(item, 1);
+	});
+	return output;
+}
+
+function buildMenuItem(item, parentLevel) {
+	itemCount = itemCount + 1;
+	let html = '';
+	let ddItemData = '';
+	item['id'] = itemCount;
+	for (let key in item) {
+		if (key !== 'children') {
+			ddItemData = ddItemData + 'data-' + key + '="' + escapeHtml(item[key]) + '" ';
+		}
+	}
+	html += '<li class="dd-item" ' + ddItemData + '>';
+	html += '  <button class="dd-handle-btn" type="button"></button>';
+	html += '  <div class="dd-handle"><span class="caption">' + item.name + '</span>';
+	html += '    <div class="float-end dd-panel">';
+	html += '      <span class="badge bg-success btn_add_sub ' + ((parentLevel == 5) ? 'visually-hidden' : '') + '"><i class="fa fa-plus" data-bs-toggle="tooltip" data-bs-original-title="{{ text_add_sub_item }}"></i></span>';
+	html += '      <span class="badge btn_js ' + ((item.js == undefined || item.js == '') ? 'bg-default' : 'bg-primary') + ' ' + ((parentLevel == 1) ? 'visually-hidden' : '') + '" data-bs-toggle="tooltip" data-bs-original-title="{{ text_js }}">{{ button_js }}</span>';
+	html += '      <span class="badge bg-primary btn_edit"><i class="fa fa-pencil" data-bs-toggle="tooltip" data-bs-original-title="{{ text_edit_item }}"></i></span></span>';
+	html += '      <span class="badge bg-danger btn_remove"><i class="fa fa-remove" data-bs-toggle="tooltip" data-bs-original-title="{{ text_remove_item }}"></i></span>';
+	html += '    </div>';
+	html += '    <div class="dd-form">';
+	let placeholder = (parentLevel == 1) ? '{{ placeholder_route }}' : '{{ placeholder_name }}';
+	html += '      <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][name]" value="' + escapeHtml(item.name) + '" title="' + placeholder + '" placeholder="' + placeholder + '">';
+	html += '      <div class="input-group input-group-sm ' + ((parentLevel == 1) ? 'visually-hidden' : '') + '">';
+	// html += '        <span class="input-group-btn">';
+	html += '          <button type="button" class="btn btn-sm btn-light btn_copy" data-bs-toggle="tooltip" data-bs-original-title="{{ text_copy }}"><i class="fa fa-copy"></i></button>';
+	// html += '        </span>';
+	html += '        <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][href]" value="' + item.href + '" title="{{ placeholder_link }}" placeholder="{{ placeholder_link }}">';
+	html += '        <span class="input-group-text">';
+	html += '          <input type="checkbox" name="menus[' + itemCount + '][target]" data-bs-toggle="tooltip" data-bs-original-title="{{ text_target }}"' + ((item.target) ? ' checked="checked"' : '') + '>';
+	html += '        </span>';
+	
+	// html += '        <span class="input-group-btn">';
+	html += '          <button type="button" class="btn btn-sm btn_js ' + ((item.js == undefined || item.js == '') ? 'btn-light' : 'btn-primary') + '" data-bs-toggle="tooltip" data-bs-original-title="{{ text_js }}">{{ button_js }}</button>';
+	html += '          <input type="hidden" name="menus[' + itemCount + '][js]" value="' + ((item.js == undefined || item.js == '') ? '' : item.js) + '" data-js >';
+	// html += '        </span>';
+
+	html += '      </div>';
+	html += '    <input type="text" class="form-control input-sm ' + ((item.icon == undefined || parentLevel == 1) ? 'visually-hidden' : '') + '" name="menus[' + itemCount + '][icon]" value="' + ((item.icon == undefined) ? '' : item.icon) + '" title="{{ placeholder_icon }}" placeholder="{{ placeholder_icon }}" data-fa-browser >';
+	html += '    </div>';
+	html += '  </div>';
+	if (item.children !== undefined && item.children.length > 0) {
+		html += '<ol class="dd-list">';
+		parentLevel = parentLevel + 1;
+		$.each(item.children, function (index, sub) {
+			html += buildMenuItem(sub, parentLevel);
+		});
+		html += '</ol>';
+	}
+	html += '</li>';
+	return html;
+}
+
+function buildPresetMenuItem(item, parentLevel) {
+	itemCount = itemCount + 1;
+	let html = '';
+	let ddItemData = '';
+	for (let key in item) {
+		if (key !== 'children') {
+			ddItemData = ddItemData + 'data-' + key + '="' + escapeHtml(item[key]) + '" ';
+		}
+	}
+	html += '<li class="dd-item ' + ((item['children'] !== undefined && item['children'].length > 0) ? 'dd-collapsed' : '') + '" ' + ddItemData + '>';
+	html += '  <button class="dd-handle-btn" type="button"></button>';
+	html += '  <div class="dd-handle"><span class="caption">' + item.name + '</span>';
+	html += '    <div class="float-end dd-panel">';
+	html += '      <span class="badge bg-primary btn_edit ' + ((item.href == '') ? 'visually-hidden' : '') + '"><i class="fa fa-search" data-bs-toggle="tooltip" data-bs-original-title="{{ text_view_item }}"></i></span></span>';
+	html += '    </div>';
+	html += '    <div class="dd-form">';
+	html += '      <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][name]" value="' + escapeHtml(item.name) + '" title="{{ placeholder_name }}" placeholder="{{ placeholder_name }}">';
+	html += '      <div class="input-group input-group-sm ' + ((item.href == '') ? 'visually-hidden' : '') + '">';
+	// html += '        <span class="input-group-btn">';
+	html += '          <button type="button" class="btn btn-sm btn-light btn_copy"><i class="fa fa-copy"></i></button>';
+	// html += '        </span>';
+	html += '        <input type="text" class="form-control input-sm" name="menus[' + itemCount + '][href]" value="' + item.href + '" title="{{ placeholder_link }}" placeholder="{{ placeholder_link }}">';
+	html += '      </div>';
+	html += '    <input type="text" class="form-control input-sm visually-hidden" name="menus[' + itemCount + '][icon]" value="' + ((item.icon == undefined) ? '' : item.icon) + '" title="{{ placeholder_icon }}" placeholder="{{ placeholder_icon }}" data-fa-browser >';
+	html += '    </div>';
+	html += '  </div>';
+	if (item.children !== undefined && item.children.length > 0) {
+		html += '<ol class="dd-list">';
+		parentLevel = parentLevel + 1;
+		$.each(item.children, function (index, sub) {
+			html += buildPresetMenuItem(sub, parentLevel);
+		});
+		html += '</ol>';
+	}
+	html += '</li>';
+	return html;
+}
+
+function buildPresetMenu(items) {
+	let output = '';
+	$.each(items, function (index, item) {
+		output += buildPresetMenuItem(item, 1);
+	});
+	return output;
+}
+
+function getItemLevel(item) {
+	return $(item).parents('.dd-item').length + 1;
+}
+
+function assignEvents(item) {
+
+	$(item).find('.btn_add_sub').first().on('click', function() {
+		let itemData = {name:'', href:'', target:1, icon:''};
+		let parentLevel = getItemLevel($(this).closest('.dd-item'));
+		let htmlItem = buildMenuItem(itemData, parentLevel + 1);
+
+		if ($(this).closest('.dd-item').find('.dd-list').length) {
+			$(this).closest('.dd-item').find('.dd-list').first().append(htmlItem);
+		} else {
+			$(this).closest('.dd-handle').after('<ol class="dd-list">' + htmlItem + '</ol>');
+		}
+		if ($(this).closest('.dd-item').hasClass('dd-collapsed')) {
+			$(this).closest('.dd-item').removeClass('dd-collapsed');
+		}
+		$(this).closest('.dd').nestable('setParent', $(this).closest('.dd-item'));
+
+		assignEvents($(this).closest('.dd-item').find('.dd-list').first().find('.dd-item').last());
+	});
+
+	let editItem = function(event) {
+		$(event.target).closest('.dd-handle').find('.dd-form').toggle();
+		$(event.target).closest('.dd-handle').find('.btn_edit > span.fa').toggleClass('fa-angle-up fa-angle-down');
+	};
+
+	$(item).find('.btn_edit').first().on('click', editItem);
+	$(item).find('.caption').first().on('click', editItem);
+	$(item).find('.dd-handle').first().on('dblclick', editItem).children().on('dblclick', function() {
+		return false;
+	});
+
+	$(item).find('.btn_remove').first().on('click', function() {
+		let id = $(this).closest('.dd-item').attr('data-id');
+		$(this).closest('.dd').nestable('remove', parseInt(id));
+		$(parent).closest('.dd').nestable();
+	});
+
+	$(item).find('input[name*=name]').first().on('input paste', function() {
+		$(this).closest('.dd-handle').find('span.caption').first().html($(this).val());
+		$(this).closest('.dd-item').attr('data-name', $(this).val());
+	});
+
+	$(item).find('input[name*=href]').first().on('input paste', function() {
+		$(this).closest('.dd-item').attr('data-href', $(this).val());
+	});
+
+	$(item).find('input[name*=icon]').first().on('input paste', function() {
+		$(this).closest('.dd-item').attr('data-icon', $(this).val());
+	});
+
+	$(item).find('input[name*=target]').first().on('click', function() {
+		$(this).closest('.dd-item').attr('data-target', Number($(this).prop('checked')));
+	});
+
+	$(item).find('input[name*=js]').first().on('input paste', function() {
+		$(this).closest('.dd-item').attr('data-js', $(this).val());
+	});
+
+	$(item).find('.btn_copy').first().on('click', function() {
+		let self = this;
+		if (navigator.clipboard == undefined) {
+			return false;
+		}
+		navigator.clipboard.writeText($(self).closest('.input-group').find('input[name*=href]').val());
+		let toggleCopyBtn = function() {
+			$(self).toggleClass('btn-success btn-light').find('i.fa').toggleClass('fa-copy fa-check');
+		}
+		toggleCopyBtn();
+		setTimeout(toggleCopyBtn, 1000);
+	});
+
+	$(item).find('.dd-panel:first > .btn_js, .dd-form:first .btn_js').on('click', function() {
+		currentInput = $(this);
+		jsEditor.setValue(currentInput.closest('.dd-item').find('input[data-js]').first().val(), -1);
+		$('#js-content').modal('show');
+		jsEditor.focus();
+	});
+
+	$(item).find('input[data-fa-browser]').first().click(function() {
+		currentInput = $(this);
+		$('#fa-icon-picker').modal('show');
+		$('#fa-icon-picker .icon.selected').removeClass('selected');
+		$('#fa-icon-picker .icon i[class="fa ' + $(currentInput).val() + '"]').closest('.icon').addClass('selected');
+		$('#fa-icon-picker input[name=search]').focus();
+	});
+
+	let tooltip_elements = [].slice.call($(item).find('[data-bs-toggle="tooltip"]'));
+	let tooltip_list = tooltip_elements.map(function (tooltip_elements) {
+		return new bootstrap.Tooltip(tooltip_elements, {container:'body'})
+	});
+}
+</script>
+<script>
+$(document).ready(function() {
+	// fontawesome
+	let icons = ["0","1","2","3","4","5","6","7","8","9","a","address-book","contact-book","address-card","contact-card","vcard","align-center","align-justify","align-left","align-right","anchor","anchor-circle-check","anchor-circle-exclamation","anchor-circle-xmark","anchor-lock","angle-down","angle-left","angle-right","angle-up","angle-double-down","angles-down","angle-double-left","angles-left","angle-double-right","angles-right","angle-double-up","angles-up","ankh","apple-alt","apple-whole","archway","arrow-down","arrow-down-1-9","sort-numeric-asc","sort-numeric-down","arrow-down-9-1","sort-numeric-desc","sort-numeric-down-alt","arrow-down-a-z","sort-alpha-asc","sort-alpha-down","arrow-down-long","long-arrow-down","arrow-down-short-wide","sort-amount-desc","sort-amount-down-alt","arrow-down-up-across-line","arrow-down-up-lock","arrow-down-wide-short","sort-amount-asc","sort-amount-down","arrow-down-z-a","sort-alpha-desc","sort-alpha-down-alt","arrow-left","arrow-left-long","long-arrow-left","arrow-pointer","mouse-pointer","arrow-right","arrow-right-arrow-left","exchange","arrow-right-from-bracket","sign-out","arrow-right-long","long-arrow-right","arrow-right-to-bracket","sign-in","arrow-right-to-city","arrow-left-rotate","arrow-rotate-back","arrow-rotate-backward","arrow-rotate-left","undo","arrow-right-rotate","arrow-rotate-forward","arrow-rotate-right","redo","arrow-trend-down","arrow-trend-up","arrow-turn-down","level-down","arrow-turn-up","level-up","arrow-up","arrow-up-1-9","sort-numeric-up","arrow-up-9-1","sort-numeric-up-alt","arrow-up-a-z","sort-alpha-up","arrow-up-from-bracket","arrow-up-from-ground-water","arrow-up-from-water-pump","arrow-up-long","long-arrow-up","arrow-up-right-dots","arrow-up-right-from-square","external-link","arrow-up-short-wide","sort-amount-up-alt","arrow-up-wide-short","sort-amount-up","arrow-up-z-a","sort-alpha-up-alt","arrows-down-to-line","arrows-down-to-people","arrows-h","arrows-left-right","arrows-left-right-to-line","arrows-rotate","refresh","sync","arrows-spin","arrows-split-up-and-left","arrows-to-circle","arrows-to-dot","arrows-to-eye","arrows-turn-right","arrows-turn-to-dots","arrows-up-down","arrows-v","arrows-up-down-left-right","arrows","arrows-up-to-line","asterisk","at","atom","audio-description","austral-sign","award","b","baby","baby-carriage","carriage-baby","backward","backward-fast","fast-backward","backward-step","step-backward","bacon","bacteria","bacterium","bag-shopping","shopping-bag","bahai","baht-sign","ban","cancel","ban-smoking","smoking-ban","band-aid","bandage","barcode","bars","navicon","bars-progress","tasks-alt","bars-staggered","reorder","stream","baseball-ball","baseball","baseball-bat-ball","basket-shopping","shopping-basket","basketball-ball","basketball","bath","bathtub","battery-0","battery-empty","battery-5","battery-full","battery","battery-3","battery-half","battery-2","battery-quarter","battery-4","battery-three-quarters","bed","bed-pulse","procedures","beer-mug-empty","beer","bell","bell-concierge","concierge-bell","bell-slash","bezier-curve","bicycle","binoculars","biohazard","bitcoin-sign","blender","blender-phone","blog","bold","bolt","zap","bolt-lightning","bomb","bone","bong","book","atlas","book-atlas","bible","book-bible","book-bookmark","book-journal-whills","journal-whills","book-medical","book-open","book-open-reader","book-reader","book-quran","quran","book-dead","book-skull","bookmark","border-all","border-none","border-style","border-top-left","bore-hole","bottle-droplet","bottle-water","bowl-food","bowl-rice","bowling-ball","box","archive","box-archive","box-open","box-tissue","boxes-packing","boxes-alt","boxes-stacked","boxes","braille","brain","brazilian-real-sign","bread-slice","bridge","bridge-circle-check","bridge-circle-exclamation","bridge-circle-xmark","bridge-lock","bridge-water","briefcase","briefcase-medical","broom","broom-ball","quidditch-broom-ball","quidditch","brush","bucket","bug","bug-slash","bugs","building","building-circle-arrow-right","building-circle-check","building-circle-exclamation","building-circle-xmark","bank","building-columns","institution","museum","university","building-flag","building-lock","building-ngo","building-shield","building-un","building-user","building-wheat","bullhorn","bullseye","burger","hamburger","burst","bus","bus-alt","bus-simple","briefcase-clock","business-time","c","birthday-cake","cake-candles","cake","calculator","calendar","calendar-check","calendar-day","calendar-alt","calendar-days","calendar-minus","calendar-plus","calendar-week","calendar-times","calendar-xmark","camera-alt","camera","camera-retro","camera-rotate","campground","candy-cane","cannabis","capsules","automobile","car","battery-car","car-battery","car-burst","car-crash","car-on","car-alt","car-rear","car-side","car-tunnel","caravan","caret-down","caret-left","caret-right","caret-up","carrot","cart-arrow-down","cart-flatbed","dolly-flatbed","cart-flatbed-suitcase","luggage-cart","cart-plus","cart-shopping","shopping-cart","cash-register","cat","cedi-sign","cent-sign","certificate","chair","blackboard","chalkboard","chalkboard-teacher","chalkboard-user","champagne-glasses","glass-cheers","charging-station","area-chart","chart-area","bar-chart","chart-bar","chart-column","chart-gantt","chart-line","line-chart","chart-pie","pie-chart","chart-simple","check","check-double","check-to-slot","vote-yea","cheese","chess","chess-bishop","chess-board","chess-king","chess-knight","chess-pawn","chess-queen","chess-rook","chevron-down","chevron-left","chevron-right","chevron-up","child","child-dress","child-reaching","child-rifle","children","church","circle","arrow-circle-down","circle-arrow-down","arrow-circle-left","circle-arrow-left","arrow-circle-right","circle-arrow-right","arrow-circle-up","circle-arrow-up","check-circle","circle-check","chevron-circle-down","circle-chevron-down","chevron-circle-left","circle-chevron-left","chevron-circle-right","circle-chevron-right","chevron-circle-up","circle-chevron-up","circle-dollar-to-slot","donate","circle-dot","dot-circle","arrow-alt-circle-down","circle-down","circle-exclamation","exclamation-circle","circle-h","hospital-symbol","adjust","circle-half-stroke","circle-info","info-circle","arrow-alt-circle-left","circle-left","circle-minus","minus-circle","circle-nodes","circle-notch","circle-pause","pause-circle","circle-play","play-circle","circle-plus","plus-circle","circle-question","question-circle","circle-radiation","radiation-alt","arrow-alt-circle-right","circle-right","circle-stop","stop-circle","arrow-alt-circle-up","circle-up","circle-user","user-circle","circle-xmark","times-circle","xmark-circle","city","clapperboard","clipboard","clipboard-check","clipboard-list","clipboard-question","clipboard-user","clock-four","clock","clock-rotate-left","history","clone","closed-captioning","cloud","cloud-arrow-down","cloud-download-alt","cloud-download","cloud-arrow-up","cloud-upload-alt","cloud-upload","cloud-bolt","thunderstorm","cloud-meatball","cloud-moon","cloud-moon-rain","cloud-rain","cloud-showers-heavy","cloud-showers-water","cloud-sun","cloud-sun-rain","clover","code","code-branch","code-commit","code-compare","code-fork","code-merge","code-pull-request","coins","colon-sign","comment","comment-dollar","comment-dots","commenting","comment-medical","comment-slash","comment-sms","sms","comments","comments-dollar","compact-disc","compass","compass-drafting","drafting-compass","compress","computer","computer-mouse","mouse","cookie","cookie-bite","copy","copyright","couch","cow","credit-card-alt","credit-card","crop","crop-alt","crop-simple","cross","crosshairs","crow","crown","crutch","cruzeiro-sign","cube","cubes","cubes-stacked","d","database","backspace","delete-left","democrat","desktop-alt","desktop","dharmachakra","diagram-next","diagram-predecessor","diagram-project","project-diagram","diagram-successor","diamond","diamond-turn-right","directions","dice","dice-d20","dice-d6","dice-five","dice-four","dice-one","dice-six","dice-three","dice-two","disease","display","divide","dna","dog","dollar-sign","dollar","usd","dolly-box","dolly","dong-sign","door-closed","door-open","dove","compress-alt","down-left-and-up-right-to-center","down-long","long-arrow-alt-down","download","dragon","draw-polygon","droplet","tint","droplet-slash","tint-slash","drum","drum-steelpan","drumstick-bite","dumbbell","dumpster","dumpster-fire","dungeon","e","deaf","deafness","ear-deaf","hard-of-hearing","assistive-listening-systems","ear-listen","earth-africa","globe-africa","earth-america","earth-americas","earth","globe-americas","earth-asia","globe-asia","earth-europe","globe-europe","earth-oceania","globe-oceania","egg","eject","elevator","ellipsis-h","ellipsis","ellipsis-v","ellipsis-vertical","envelope","envelope-circle-check","envelope-open","envelope-open-text","envelopes-bulk","mail-bulk","equals","eraser","ethernet","eur","euro-sign","euro","exclamation","expand","explosion","eye","eye-dropper-empty","eye-dropper","eyedropper","eye-low-vision","low-vision","eye-slash","f","angry","face-angry","dizzy","face-dizzy","face-flushed","flushed","face-frown","frown","face-frown-open","frown-open","face-grimace","grimace","face-grin","grin","face-grin-beam","grin-beam","face-grin-beam-sweat","grin-beam-sweat","face-grin-hearts","grin-hearts","face-grin-squint","grin-squint","face-grin-squint-tears","grin-squint-tears","face-grin-stars","grin-stars","face-grin-tears","grin-tears","face-grin-tongue","grin-tongue","face-grin-tongue-squint","grin-tongue-squint","face-grin-tongue-wink","grin-tongue-wink","face-grin-wide","grin-alt","face-grin-wink","grin-wink","face-kiss","kiss","face-kiss-beam","kiss-beam","face-kiss-wink-heart","kiss-wink-heart","face-laugh","laugh","face-laugh-beam","laugh-beam","face-laugh-squint","laugh-squint","face-laugh-wink","laugh-wink","face-meh","meh","face-meh-blank","meh-blank","face-rolling-eyes","meh-rolling-eyes","face-sad-cry","sad-cry","face-sad-tear","sad-tear","face-smile","smile","face-smile-beam","smile-beam","face-smile-wink","smile-wink","face-surprise","surprise","face-tired","tired","fan","faucet","faucet-drip","fax","feather","feather-alt","feather-pointed","ferry","file","file-arrow-down","file-download","file-arrow-up","file-upload","file-audio","file-circle-check","file-circle-exclamation","file-circle-minus","file-circle-plus","file-circle-question","file-circle-xmark","file-code","file-contract","file-csv","file-excel","arrow-right-from-file","file-export","file-image","arrow-right-to-file","file-import","file-invoice","file-invoice-dollar","file-alt","file-lines","file-text","file-medical","file-pdf","file-edit","file-pen","file-powerpoint","file-prescription","file-shield","file-signature","file-video","file-medical-alt","file-waveform","file-word","file-archive","file-zipper","fill","fill-drip","film","filter","filter-circle-dollar","funnel-dollar","filter-circle-xmark","fingerprint","fire","fire-burner","fire-extinguisher","fire-alt","fire-flame-curved","burn","fire-flame-simple","fish","fish-fins","flag","flag-checkered","flag-usa","flask","flask-vial","floppy-disk","save","florin-sign","folder-blank","folder","folder-closed","folder-minus","folder-open","folder-plus","folder-tree","font","football-ball","football","forward","fast-forward","forward-fast","forward-step","step-forward","franc-sign","frog","futbol-ball","futbol","soccer-ball","g","gamepad","gas-pump","dashboard","gauge-med","gauge","tachometer-alt-average","gauge-high","tachometer-alt-fast","tachometer-alt","gauge-simple-med","gauge-simple","tachometer-average","gauge-simple-high","tachometer-fast","tachometer","gavel","legal","cog","gear","cogs","gears","gem","genderless","ghost","gift","gifts","glass-water","glass-water-droplet","glasses","globe","golf-ball-tee","golf-ball","gopuram","graduation-cap","mortar-board","greater-than","greater-than-equal","grip-horizontal","grip","grip-lines","grip-lines-vertical","grip-vertical","group-arrows-rotate","guarani-sign","guitar","gun","h","hammer","hamsa","hand-paper","hand","hand-back-fist","hand-rock","allergies","hand-dots","fist-raised","hand-fist","hand-holding","hand-holding-dollar","hand-holding-usd","hand-holding-droplet","hand-holding-water","hand-holding-hand","hand-holding-heart","hand-holding-medical","hand-lizard","hand-middle-finger","hand-peace","hand-point-down","hand-point-left","hand-point-right","hand-point-up","hand-pointer","hand-scissors","hand-sparkles","hand-spock","handcuffs","hands","sign-language","signing","american-sign-language-interpreting","asl-interpreting","hands-american-sign-language-interpreting","hands-asl-interpreting","hands-bound","hands-bubbles","hands-wash","hands-clapping","hands-holding","hands-holding-child","hands-holding-circle","hands-praying","praying-hands","handshake","hands-helping","handshake-angle","handshake-alt","handshake-simple","handshake-alt-slash","handshake-simple-slash","handshake-slash","hanukiah","hard-drive","hdd","hashtag","hat-cowboy","hat-cowboy-side","hat-wizard","head-side-cough","head-side-cough-slash","head-side-mask","head-side-virus","header","heading","headphones","headphones-alt","headphones-simple","headset","heart","heart-circle-bolt","heart-circle-check","heart-circle-exclamation","heart-circle-minus","heart-circle-plus","heart-circle-xmark","heart-broken","heart-crack","heart-pulse","heartbeat","helicopter","helicopter-symbol","hard-hat","hat-hard","helmet-safety","helmet-un","highlighter","hill-avalanche","hill-rockslide","hippo","hockey-puck","holly-berry","horse","horse-head","hospital-alt","hospital-wide","hospital","hospital-user","hot-tub-person","hot-tub","hotdog","hotel","hourglass-2","hourglass-half","hourglass","hourglass-empty","hourglass-3","hourglass-end","hourglass-1","hourglass-start","home-alt","home-lg-alt","home","house","home-lg","house-chimney","house-chimney-crack","house-damage","clinic-medical","house-chimney-medical","house-chimney-user","house-chimney-window","house-circle-check","house-circle-exclamation","house-circle-xmark","house-crack","house-fire","house-flag","house-flood-water","house-flood-water-circle-arrow-right","house-laptop","laptop-house","house-lock","house-medical","house-medical-circle-check","house-medical-circle-exclamation","house-medical-circle-xmark","house-medical-flag","house-signal","house-tsunami","home-user","house-user","hryvnia-sign","hryvnia","hurricane","i","i-cursor","ice-cream","icicles","heart-music-camera-bolt","icons","id-badge","drivers-license","id-card","id-card-alt","id-card-clip","igloo","image","image-portrait","portrait","images","inbox","indent","indian-rupee-sign","indian-rupee","inr","industry","infinity","info","italic","j","jar","jar-wheat","jedi","fighter-jet","jet-fighter","jet-fighter-up","joint","jug-detergent","k","kaaba","key","keyboard","khanda","kip-sign","first-aid","kit-medical","kitchen-set","kiwi-bird","l","land-mine-on","landmark","landmark-alt","landmark-dome","landmark-flag","language","laptop","laptop-code","laptop-file","laptop-medical","lari-sign","layer-group","leaf","left-long","long-arrow-alt-left","arrows-alt-h","left-right","lemon","less-than","less-than-equal","life-ring","lightbulb","lines-leaning","chain","link","chain-broken","chain-slash","link-slash","unlink","lira-sign","list-squares","list","list-check","tasks","list-1-2","list-numeric","list-ol","list-dots","list-ul","litecoin-sign","location-arrow","location-crosshairs","location","location-dot","map-marker-alt","location-pin","map-marker","location-pin-lock","lock","lock-open","locust","lungs","lungs-virus","m","magnet","magnifying-glass","search","magnifying-glass-arrow-right","magnifying-glass-chart","magnifying-glass-dollar","search-dollar","magnifying-glass-location","search-location","magnifying-glass-minus","search-minus","magnifying-glass-plus","search-plus","manat-sign","map","map-location","map-marked","map-location-dot","map-marked-alt","map-pin","marker","mars","mars-and-venus","mars-and-venus-burst","mars-double","mars-stroke","mars-stroke-h","mars-stroke-right","mars-stroke-up","mars-stroke-v","glass-martini-alt","martini-glass","cocktail","martini-glass-citrus","glass-martini","martini-glass-empty","mask","mask-face","mask-ventilator","masks-theater","theater-masks","mattress-pillow","expand-arrows-alt","maximize","medal","memory","menorah","mercury","comment-alt","message","meteor","microchip","microphone","microphone-alt","microphone-lines","microphone-alt-slash","microphone-lines-slash","microphone-slash","microscope","mill-sign","compress-arrows-alt","minimize","minus","subtract","mitten","mobile-android","mobile-phone","mobile","mobile-button","mobile-retro","mobile-android-alt","mobile-screen","mobile-alt","mobile-screen-button","money-bill","money-bill-1","money-bill-alt","money-bill-1-wave","money-bill-wave-alt","money-bill-transfer","money-bill-trend-up","money-bill-wave","money-bill-wheat","money-bills","money-check","money-check-alt","money-check-dollar","monument","moon","mortar-pestle","mosque","mosquito","mosquito-net","motorcycle","mound","mountain","mountain-city","mountain-sun","mug-hot","coffee","mug-saucer","music","n","naira-sign","network-wired","neuter","newspaper","not-equal","note-sticky","sticky-note","notes-medical","o","object-group","object-ungroup","oil-can","oil-well","om","otter","dedent","outdent","p","pager","paint-roller","paint-brush","paintbrush","palette","pallet","panorama","paper-plane","paperclip","parachute-box","paragraph","passport","file-clipboard","paste","pause","paw","peace","pen","pen-alt","pen-clip","pen-fancy","pen-nib","pen-ruler","pencil-ruler","edit","pen-to-square","pencil-alt","pencil","people-arrows-left-right","people-arrows","people-carry-box","people-carry","people-group","people-line","people-pulling","people-robbery","people-roof","pepper-hot","percent","percentage","male","person","person-arrow-down-to-line","person-arrow-up-from-line","biking","person-biking","person-booth","person-breastfeeding","person-burst","person-cane","person-chalkboard","person-circle-check","person-circle-exclamation","person-circle-minus","person-circle-plus","person-circle-question","person-circle-xmark","digging","person-digging","diagnoses","person-dots-from-line","female","person-dress","person-dress-burst","person-drowning","person-falling","person-falling-burst","person-half-dress","person-harassing","hiking","person-hiking","person-military-pointing","person-military-rifle","person-military-to-person","person-praying","pray","person-pregnant","person-rays","person-rifle","person-running","running","person-shelter","person-skating","skating","person-skiing","skiing","person-skiing-nordic","skiing-nordic","person-snowboarding","snowboarding","person-swimming","swimmer","person-through-window","person-walking","walking","person-walking-arrow-loop-left","person-walking-arrow-right","person-walking-dashed-line-arrow-right","person-walking-luggage","blind","person-walking-with-cane","peseta-sign","peso-sign","phone","phone-alt","phone-flip","phone-slash","phone-volume","volume-control-phone","photo-film","photo-video","piggy-bank","pills","pizza-slice","place-of-worship","plane","plane-arrival","plane-circle-check","plane-circle-exclamation","plane-circle-xmark","plane-departure","plane-lock","plane-slash","plane-up","plant-wilt","plate-wheat","play","plug","plug-circle-bolt","plug-circle-check","plug-circle-exclamation","plug-circle-minus","plug-circle-plus","plug-circle-xmark","add","plus","plus-minus","podcast","poo","poo-bolt","poo-storm","poop","power-off","prescription","prescription-bottle","prescription-bottle-alt","prescription-bottle-medical","print","pump-medical","pump-soap","puzzle-piece","q","qrcode","question","quote-left-alt","quote-left","quote-right-alt","quote-right","r","radiation","radio","rainbow","ranking-star","receipt","record-vinyl","ad","rectangle-ad","list-alt","rectangle-list","rectangle-times","rectangle-xmark","times-rectangle","window-close","recycle","registered","repeat","mail-reply","reply","mail-reply-all","reply-all","republican","restroom","retweet","ribbon","right-from-bracket","sign-out-alt","exchange-alt","right-left","long-arrow-alt-right","right-long","right-to-bracket","sign-in-alt","ring","road","road-barrier","road-bridge","road-circle-check","road-circle-exclamation","road-circle-xmark","road-lock","road-spikes","robot","rocket","rotate","sync-alt","rotate-back","rotate-backward","rotate-left","undo-alt","redo-alt","rotate-forward","rotate-right","route","feed","rss","rouble","rub","ruble-sign","ruble","rug","ruler","ruler-combined","ruler-horizontal","ruler-vertical","rupee-sign","rupee","rupiah-sign","s","sack-dollar","sack-xmark","sailboat","satellite","satellite-dish","balance-scale","scale-balanced","balance-scale-left","scale-unbalanced","balance-scale-right","scale-unbalanced-flip","school","school-circle-check","school-circle-exclamation","school-circle-xmark","school-flag","school-lock","cut","scissors","screwdriver","screwdriver-wrench","tools","scroll","scroll-torah","torah","sd-card","section","seedling","sprout","server","shapes","triangle-circle-square","arrow-turn-right","mail-forward","share","share-from-square","share-square","share-alt","share-nodes","sheet-plastic","ils","shekel-sign","shekel","sheqel-sign","sheqel","shield-blank","shield","shield-cat","shield-dog","shield-alt","shield-halved","shield-heart","shield-virus","ship","shirt","t-shirt","tshirt","shoe-prints","shop","store-alt","shop-lock","shop-slash","store-alt-slash","shower","shrimp","random","shuffle","shuttle-space","space-shuttle","sign-hanging","sign","signal-5","signal-perfect","signal","signature","map-signs","signs-post","sim-card","sink","sitemap","skull","skull-crossbones","slash","sleigh","sliders-h","sliders","smog","smoking","snowflake","snowman","snowplow","soap","socks","solar-panel","sort","unsorted","sort-desc","sort-down","sort-asc","sort-up","spa","pastafarianism","spaghetti-monster-flying","spell-check","spider","spinner","splotch","spoon","utensil-spoon","spray-can","air-freshener","spray-can-sparkles","square","external-link-square","square-arrow-up-right","caret-square-down","square-caret-down","caret-square-left","square-caret-left","caret-square-right","square-caret-right","caret-square-up","square-caret-up","check-square","square-check","envelope-square","square-envelope","square-full","h-square","square-h","minus-square","square-minus","square-nfi","parking","square-parking","pen-square","pencil-square","square-pen","square-person-confined","phone-square","square-phone","phone-square-alt","square-phone-flip","plus-square","square-plus","poll-h","square-poll-horizontal","poll","square-poll-vertical","square-root-alt","square-root-variable","rss-square","square-rss","share-alt-square","square-share-nodes","external-link-square-alt","square-up-right","square-virus","square-xmark","times-square","xmark-square","rod-asclepius","rod-snake","staff-aesculapius","staff-snake","stairs","stamp","star","star-and-crescent","star-half","star-half-alt","star-half-stroke","star-of-david","star-of-life","gbp","pound-sign","sterling-sign","stethoscope","stop","stopwatch","stopwatch-20","store","store-slash","street-view","strikethrough","stroopwafel","subscript","suitcase","medkit","suitcase-medical","suitcase-rolling","sun","sun-plant-wilt","superscript","swatchbook","synagogue","syringe","t","table","table-cells","th","table-cells-large","th-large","columns","table-columns","table-list","th-list","ping-pong-paddle-ball","table-tennis-paddle-ball","table-tennis","tablet-android","tablet","tablet-button","tablet-alt","tablet-screen-button","tablets","digital-tachograph","tachograph-digital","tag","tags","tape","tarp","tarp-droplet","cab","taxi","teeth","teeth-open","temperature-arrow-down","temperature-down","temperature-arrow-up","temperature-up","temperature-0","temperature-empty","thermometer-0","thermometer-empty","temperature-4","temperature-full","thermometer-4","thermometer-full","temperature-2","temperature-half","thermometer-2","thermometer-half","temperature-high","temperature-low","temperature-1","temperature-quarter","thermometer-1","thermometer-quarter","temperature-3","temperature-three-quarters","thermometer-3","thermometer-three-quarters","tenge-sign","tenge","tent","tent-arrow-down-to-line","tent-arrow-left-right","tent-arrow-turn-left","tent-arrows-down","tents","terminal","text-height","remove-format","text-slash","text-width","thermometer","thumbs-down","thumbs-up","thumb-tack","thumbtack","ticket","ticket-alt","ticket-simple","timeline","toggle-off","toggle-on","toilet","toilet-paper","toilet-paper-slash","toilet-portable","toilets-portable","toolbox","tooth","torii-gate","tornado","broadcast-tower","tower-broadcast","tower-cell","tower-observation","tractor","trademark","traffic-light","trailer","train","subway","train-subway","train-tram","tram","transgender-alt","transgender","trash","trash-arrow-up","trash-restore","trash-alt","trash-can","trash-can-arrow-up","trash-restore-alt","tree","tree-city","exclamation-triangle","triangle-exclamation","warning","trophy","trowel","trowel-bricks","truck","truck-arrow-right","truck-droplet","shipping-fast","truck-fast","truck-field","truck-field-un","truck-front","ambulance","truck-medical","truck-monster","truck-moving","truck-pickup","truck-plane","truck-loading","truck-ramp-box","teletype","tty","try","turkish-lira-sign","turkish-lira","level-down-alt","turn-down","level-up-alt","turn-up","television","tv-alt","tv","u","umbrella","umbrella-beach","underline","universal-access","unlock","unlock-alt","unlock-keyhole","arrows-alt-v","up-down","arrows-alt","up-down-left-right","long-arrow-alt-up","up-long","expand-alt","up-right-and-down-left-from-center","external-link-alt","up-right-from-square","upload","user","user-astronaut","user-check","user-clock","user-doctor","user-md","user-cog","user-gear","user-graduate","user-friends","user-group","user-injured","user-alt","user-large","user-alt-slash","user-large-slash","user-lock","user-minus","user-ninja","user-nurse","user-edit","user-pen","user-plus","user-secret","user-shield","user-slash","user-tag","user-tie","user-times","user-xmark","users","users-between-lines","users-cog","users-gear","users-line","users-rays","users-rectangle","users-slash","users-viewfinder","cutlery","utensils","v","shuttle-van","van-shuttle","vault","vector-square","venus","venus-double","venus-mars","vest","vest-patches","vial","vial-circle-check","vial-virus","vials","video-camera","video","video-slash","vihara","virus","virus-covid","virus-covid-slash","virus-slash","viruses","voicemail","volcano","volleyball-ball","volleyball","volume-high","volume-up","volume-down","volume-low","volume-off","volume-mute","volume-times","volume-xmark","vr-cardboard","w","walkie-talkie","wallet","magic","wand-magic","magic-wand-sparkles","wand-magic-sparkles","wand-sparkles","warehouse","water","ladder-water","swimming-pool","water-ladder","wave-square","weight-hanging","weight-scale","weight","wheat-alt","wheat-awn","wheat-awn-circle-exclamation","wheelchair","wheelchair-alt","wheelchair-move","glass-whiskey","whiskey-glass","wifi-3","wifi-strong","wifi","wind","window-maximize","window-minimize","window-restore","wine-bottle","wine-glass","wine-glass-alt","wine-glass-empty","krw","won-sign","won","worm","wrench","x","x-ray","close","multiply","remove","times","xmark","xmarks-lines","y","cny","jpy","rmb","yen-sign","yen","yin-yang","z"];
+	let html = '';
+	$.each(icons, function(index, value) {
+		html += '<div class="icon" data-bs-toggle="tooltip" data-bs-original-title="fa-' + value + '"><i class="fa fa-' + value + '"></i></div>';
+	});
+	$('#fa-icon-picker .search_container').append(html);
+	
+	let tooltip_elements = [].slice.call($('#fa-icon-picker [data-bs-toggle="tooltip"]'));
+	let tooltip_list = tooltip_elements.map(function (tooltip_elements) {
+		return new bootstrap.Tooltip(tooltip_elements, {container:'body'})
+	});
+
+	$('#fa-icon-picker input[name=search]').on('input paste', function() {
+		let search = $(this).val();
+		if (search !== '') {
+			$('#fa-icon-picker .search_container .icon').addClass('visually-hidden');
+			$('#fa-icon-picker .search_container .icon i[class*=' + search + ']').closest('.icon').removeClass('visually-hidden');
+		} else {
+			$('#fa-icon-picker .search_container .icon').removeClass('visually-hidden');
+		}
+	});
+
+	$('#fa-icon-picker .icon').on('click', function() {
+		currentInput.val($(this).find('i').attr('class').replace(/fa /, ''));
+		$('#fa-icon-picker').modal('hide');
+		currentInput.trigger('input');
+		$('#fa-icon-picker input[name=search]').val('').trigger('input');
+	});
+});
+</script>
+<div class="modal fade" tabindex="-1" role="dialog" id="fa-icon-picker" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+	<div class="modal-content">
+		<div class="modal-header">
+			<h5 class="modal-title">{{ modal_fa_title }}</h5>
+			<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="&times;"></button>
+		</div>
+		<div class="modal-body">
+			<input type="text" class="form-control" value="" placeholder="{{ modal_fa_search }}" name="search" autocomplete="off">
+			<br />
+			<div class="search_container"></div>
+		</div>
+	</div>
+	</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/ace.min.js" integrity="sha512-U2JKYiHG3ixOjmdycNbi4Xur8q4Nv73CscCGEopBeiVyzDR5ErC6jmHNr0pOB8CUVWb0aQXLgL0wYXhoMU6iqw==" crossorigin="anonymous" referrerpolicy="no-referrer" onload="initJSEditor()" async></script>
+<script>
+function initJSEditor() {
+	window.ace.config.set('basePath', 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.6/');
+	jsEditorWrapper = document.querySelector('#js-editor');
+	jsEditor = window.ace.edit(jsEditorWrapper);
+	jsEditor.setTheme('ace/theme/textmate');
+	jsEditor.session.setMode('ace/mode/javascript');
+}
+$(document).ready(function() {
+	$('#js-content .btn_save').on('click', function() {
+		let jsContent = jsEditor.getValue();
+		let isEmpty = (jsContent == '');
+		currentInput.closest('.dd-item').find('.dd-panel:first > .btn_js, .dd-form:first .btn_js').each(function(index, elem) {
+			if ($(elem).hasClass('label')) {
+				$(elem).toggleClass('bg-default', isEmpty).toggleClass('bg-primary', !isEmpty);
+			} else {
+				$(elem).toggleClass('btn-light', isEmpty).toggleClass('btn-primary', !isEmpty);
+			}
+		});
+		currentInput.closest('.dd-item').find('input[data-js]').first().val(jsContent).trigger('input');
+		jsEditor.session.getUndoManager().reset();
+		$('#js-content').modal('hide');
+	});
+	$('#js-content .btn_clear').on('click', function() {
+		jsEditor.setValue('');
+	});
+	$('#js-content .btn_cancel').on('click', function() {
+		$('#js-content').modal('hide');
+	});
+});
+</script>
+<div class="modal fade" tabindex="-1" role="dialog" id="js-content" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+	<div class="modal-content">
+		<div class="modal-header">
+			<h5 class="modal-title">{{ modal_js_title }}</h5>
+			<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="&times;"></button>
+		</div>
+		<div class="modal-body">
+			<pre id="js-editor"></pre>
+		</div>
+		<div class="modal-footer">
+			<button type="button" class="btn btn-success btn-sm btn_save">{{ modal_js_save }}</button>
+			<button type="button" class="btn btn-warning btn-sm btn_clear">{{ modal_js_clear }}</button>
+			<button type="button" class="btn btn-light btn-sm btn_cancel">{{ modal_js_cancel }}</button>
+		</div>
+	</div>
+	</div>
+</div>
+{{ footer }}
